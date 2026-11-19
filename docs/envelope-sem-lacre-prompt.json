@@ -1,0 +1,6 @@
+{
+  "tool": "image_gen integrada",
+  "reference": "assets/art/envelope-v2.webp",
+  "output": "assets/art/envelope-sem-lacre-v3.webp",
+  "prompt": "Use case: precise-object-edit. Edit target: the provided flat-lay photograph of a sage paper wedding envelope on ivory linen with white lilies and green botanical branches. Remove ONLY the central olive-green wax seal and its cast shadow. Reconstruct the torn triangular paper flap and the underlying envelope paper at that small location with exactly matching sage-green paper fibers, natural continuous folded edges, lighting and texture. The triangular flap should end in a clean V point near the center where the seal used to be. Keep EVERYTHING else exactly fixed: same 1536x1024 landscape canvas, same envelope size, angle, corners and position, identical leaves, lilies, linen texture, framing, shadows, exposure and color. No new objects, no writing, no monogram, no graphics. It must be the same photograph with only the wax seal removed. This is a production animation base plate; geometric alignment with the original is essential."
+}

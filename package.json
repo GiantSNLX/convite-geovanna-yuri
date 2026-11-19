@@ -1,0 +1,18 @@
+{
+  "name": "convite-geovanna-yuri",
+  "version": "3.0.0",
+  "private": true,
+  "description": "Convite floral interativo de Yuri e Geovanna",
+  "scripts": {
+    "start": "node server.mjs",
+    "preview": "node server.mjs",
+    "test": "node --test --experimental-test-isolation=none tests/*.test.mjs",
+    "check": "node --check app.js && node --check config.js && node --check experience.js && node --check guestbook.mjs && node --check server.mjs && node --check scripts/csv.mjs && node --check scripts/messages.mjs && node --check scripts/rsvps.mjs",
+    "messages:export": "node scripts/messages.mjs export",
+    "messages:remove": "node scripts/messages.mjs remove",
+    "rsvp:export": "node scripts/rsvps.mjs"
+  },
+  "engines": {
+    "node": ">=22.13"
+  }
+}
