@@ -48,6 +48,7 @@ dialog{width:min(540px,calc(100% - 32px));max-height:calc(100svh - 32px);padding
 .resume-pill{display:inline-flex;align-items:center;gap:8px;margin-top:14px;padding:9px 16px;background:var(--sage);border:1px solid #9bae89;border-radius:999px;color:var(--green);font-size:14px;font-weight:500}.resume-pill .icon{width:17px;height:17px;flex-basis:17px}.resume-pill:hover{background:#dfe8d5}
 .dialog-title-group{display:flex;flex-direction:column;gap:4px;min-width:0}
 .invite-dialog-meta{font-size:14px;font-weight:500;color:var(--ink)}
+.seats-banner{margin:0 0 18px;padding:12px 15px;background:var(--sage);border:1px solid #c3d1b3;border-left:3px solid var(--gold);border-radius:8px;font-size:14.5px;color:var(--green);font-weight:500}
 .radio-group{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0 18px}
 .radio-card{display:flex;align-items:flex-start;gap:10px;padding:13px 14px;background:var(--white);border:1px solid #a9b89c;border-radius:6px;cursor:pointer;margin:0}
 .radio-card:has(input:checked){border-color:var(--green);background:var(--sage)}

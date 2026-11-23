@@ -346,6 +346,7 @@
       <div id="rsvp-step-form">
         <h2 id="rsvp-heading">Esperamos <em>você.</em></h2>
         <p>Conte para nós se podemos esperar pelo seu abraço.</p>
+        <p id="rsvp-seats-banner" class="seats-banner" hidden></p>
         <form id="rsvp-form">
           <fieldset class="radio-group">
             <legend class="sr-only">Você poderá estar com a gente?</legend>
@@ -382,14 +383,14 @@
           <div class="family-box" id="companions-field">
             <div class="family-head">
               <div>
-                <strong>Pessoas que estarão presentes</strong>
-                <small>Informe os nomes de quem vai celebrar conosco</small>
+                <strong>Senhas disponíveis neste convite</strong>
+                <small>Informe os nomes de quem utilizará cada senha</small>
               </div>
-              <span id="family-count" class="family-count">1 de 2 lugares informados</span>
+              <span id="family-count" class="family-count">1 de 2 senhas preenchidas</span>
             </div>
             <div id="rsvp-guests-list" class="guests-list"></div>
             <button type="button" id="add-guest-btn" class="button button-outline button-small add-guest-btn">+ Adicionar pessoa</button>
-            <p id="extra-seat-note" class="fine-print" hidden>Limite do convite atingido. Para solicitar um lugar adicional, entre em contato com os noivos.</p>
+            <p id="extra-seat-note" class="fine-print" hidden>Todas as senhas disponíveis deste convite já foram preenchidas. Para solicitar uma senha extra, entre em contato com os noivos.</p>
           </div>
 
           <div class="form-field" id="absence-note-field" hidden>
@@ -423,6 +424,7 @@
         <h2 id="rsvp-next-heading">Presença <em>confirmada!</em></h2>
         <p id="rsvp-next-summary" class="form-status is-success"></p>
         <div class="dialog-actions-stack">
+          <a id="rsvp-whatsapp-confirm" class="button button-full" href="#" target="_blank" rel="noopener noreferrer" hidden>Enviar confirmação no WhatsApp <img class="icon" src="./assets/icons/arrow-up-right.svg" alt=""></a>
           <button type="button" class="button button-full" id="rsvp-open-calendar"><img class="icon" src="./assets/icons/calendar-days.svg" alt=""> Adicionar à agenda</button>
           <button type="button" class="button button-outline button-full" id="rsvp-next-message"><img class="icon" src="./assets/icons/mail.svg" alt=""> Deixar um recado</button>
         </div>

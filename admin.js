@@ -52,9 +52,24 @@
     return ok;
   }
 
-  function buildInviteLink(token) {
+  function encodeInviteKey(inv) {
+    var payload = {
+      t: inv.token || '',
+      f: inv.familyName || '',
+      n: Math.max(1, Math.min(20, Number(inv.maxGuests) || 1))
+    };
+    var bytes = new TextEncoder().encode(JSON.stringify(payload));
+    var bin = '';
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  }
+
+  function buildInviteLink(inviteOrToken) {
     var base = global.location.origin + '/';
-    return base + '?c=' + encodeURIComponent(token);
+    if (inviteOrToken && typeof inviteOrToken === 'object') {
+      return base + '?c=' + encodeURIComponent(inviteOrToken.token) + '&k=' + encodeInviteKey(inviteOrToken);
+    }
+    return base + '?c=' + encodeURIComponent(inviteOrToken);
   }
 
   function formatDate(iso) {
@@ -119,7 +134,7 @@
 
       var linkLine = document.createElement('p');
       linkLine.className = 'invite-meta-line';
-      linkLine.textContent = 'Link individual: ' + buildInviteLink(inv.token);
+      linkLine.textContent = 'Link individual: ' + buildInviteLink(inv);
       info.appendChild(linkLine);
 
       if (inv.status === 'yes' && inv.confirmedGuests && inv.confirmedGuests.length) {
@@ -154,7 +169,7 @@
       copyBtn.className = 'button button-small';
       copyBtn.textContent = 'Copiar link individual';
       copyBtn.addEventListener('click', async function () {
-        var ok = await copyText(buildInviteLink(inv.token));
+        var ok = await copyText(buildInviteLink(inv));
         toast(ok ? 'Link individual copiado para ' + inv.familyName + '.' : 'Não foi possível copiar automaticamente.');
       });
 
@@ -299,7 +314,7 @@
 
   async function openEditInviteDialog(inv) {
     byId('edit-invite-id').value = String(inv.id);
-    byId('admin-edit-token-label').textContent = 'Link: ' + buildInviteLink(inv.token);
+    byId('admin-edit-token-label').textContent = 'Link: ' + buildInviteLink(inv);
     byId('edit-family-name').value = inv.familyName;
     byId('edit-max-guests').value = String(inv.maxGuests);
     byId('edit-invite-status').value = inv.status;

@@ -247,6 +247,54 @@
     return lines.join('\n');
   }
 
+  function encodeInviteKey(input) {
+    var payload = {
+      t: String((input && (input.token || input.t)) || ''),
+      f: String((input && (input.familyName || input.f)) || ''),
+      n: Math.max(1, Math.min(20, Number(input && (input.maxGuests || input.n)) || 1))
+    };
+    var json = JSON.stringify(payload);
+    if (typeof Buffer !== 'undefined') {
+      return Buffer.from(json, 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+    }
+    var bytes = new TextEncoder().encode(json);
+    var bin = '';
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  }
+
+  function decodeInviteKey(raw) {
+    var text = String(raw || '').trim();
+    if (!text) return null;
+    if (/^\d{1,2}$/.test(text)) {
+      var nOnly = Math.max(1, Math.min(20, Number(text) || 1));
+      return { token: '', familyName: '', maxGuests: nOnly };
+    }
+    try {
+      var b64 = text.replace(/-/g, '+').replace(/_/g, '/');
+      while (b64.length % 4) b64 += '=';
+      var jsonStr;
+      if (typeof Buffer !== 'undefined') {
+        jsonStr = Buffer.from(b64, 'base64').toString('utf8');
+      } else {
+        var bin = atob(b64);
+        var bytes = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        jsonStr = new TextDecoder().decode(bytes);
+      }
+      var data = JSON.parse(jsonStr);
+      if (!data || typeof data !== 'object') return null;
+      var n = Math.max(1, Math.min(20, Number(data.n || data.senhas || data.maxGuests) || 1));
+      return {
+        token: String(data.t || data.token || '').trim(),
+        familyName: String(data.f || data.familyName || '').trim(),
+        maxGuests: n
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
   function maskPhone(phone) {
     var digits = String(phone || '').replace(/\D+/g, '');
     if (digits.length >= 4) return 'final ' + digits.slice(-4);
@@ -259,6 +307,8 @@
     buildICS: buildICS,
     buildRsvpMessage: buildRsvpMessage,
     getCalendarData: getCalendarData,
+    encodeInviteKey: encodeInviteKey,
+    decodeInviteKey: decodeInviteKey,
     escapeICS: escapeICS,
     foldICSLine: foldICSLine,
     zonedDateTimeToUTC: zonedDateTimeToUTC,
@@ -1563,7 +1613,7 @@
     function updateFamilyCount() {
       var count = guestsList.querySelectorAll('.guest-row').length;
       var max = getMaxAllowedGuests();
-      byId('family-count').textContent = count + ' de ' + max + (max === 1 ? ' lugar informado' : ' lugares informados');
+      byId('family-count').textContent = count + ' de ' + max + (max === 1 ? ' senha preenchida' : ' senhas preenchidas');
       var reachedLimit = count >= max;
       byId('add-guest-btn').disabled = reachedLimit;
       byId('extra-seat-note').hidden = !reachedLimit;
@@ -1749,14 +1799,21 @@
     function syncInviteUi() {
       var metaEl = byId('rsvp-invite-meta');
       var badgeEl = byId('invite-personal-badge');
+      var seatsBanner = byId('rsvp-seats-banner');
       var resumePill = byId('rsvp-resume-pill');
 
       if (currentInvite) {
+        var max = getMaxAllowedGuests();
+        var senhasTxt = max + (max === 1 ? ' senha disponível' : ' senhas disponíveis');
         metaEl.hidden = false;
-        metaEl.textContent = 'Convite para ' + currentInvite.familyName + ' · Pessoas previstas: até ' + currentInvite.maxGuests;
+        metaEl.textContent = (currentInvite.familyName ? currentInvite.familyName + ' · ' : '') + senhasTxt;
         badgeEl.hidden = false;
-        byId('invite-badge-family').textContent = 'Convite para ' + currentInvite.familyName;
-        byId('invite-badge-limit').textContent = '· Até ' + currentInvite.maxGuests + (currentInvite.maxGuests === 1 ? ' pessoa' : ' pessoas');
+        byId('invite-badge-family').textContent = currentInvite.familyName ? 'Convite para ' + currentInvite.familyName : 'Convite especial';
+        byId('invite-badge-limit').textContent = '· ' + senhasTxt;
+        if (seatsBanner) {
+          seatsBanner.hidden = false;
+          seatsBanner.textContent = 'Você tem ' + senhasTxt + ' neste convite.';
+        }
 
         if (currentInvite.respondentName) {
           currentRespondentName = currentInvite.respondentName;
@@ -1769,6 +1826,7 @@
       } else {
         metaEl.hidden = true;
         badgeEl.hidden = true;
+        if (seatsBanner) seatsBanner.hidden = true;
         resumePill.hidden = true;
       }
       updateFamilyCount();
@@ -1938,7 +1996,69 @@
       status.className = 'form-status';
       status.textContent = 'Enviando...';
 
+      var STATIC_RSVP_KEY = 'convite_static_rsvp_v1';
+      function getStaticCacheKey() {
+        return currentInviteToken || (currentInvite && currentInvite.familyName) || 'default';
+      }
+      function buildWhatsAppConfirmHref(payload) {
+        var waDigits = String(rsvpConfig.whatsapp || '5592984849557').replace(/\D+/g, '');
+        var lines = ['Olá, Geovanna e Yuri! Confirmação do convite:'];
+        if (currentInvite && currentInvite.familyName) lines.push('Convite: ' + currentInvite.familyName + ' (' + getMaxAllowedGuests() + ' senha(s))');
+        else lines.push('Senhas disponíveis: ' + getMaxAllowedGuests());
+        lines.push('Responsável: ' + payload.name);
+        if (payload.phone) lines.push('Telefone: ' + payload.phone);
+        if (payload.response === 'yes') {
+          var names = (payload.guests || []).map(function (g, i) { return (i + 1) + '. ' + (typeof g === 'string' ? g : g.name); });
+          lines.push('Presença: Sim (' + names.length + ' de ' + getMaxAllowedGuests() + ' senha(s)):');
+          lines.push(names.join('\n'));
+        } else {
+          lines.push('Presença: Infelizmente não poderemos ir.');
+          if (payload.absenceNote) lines.push('Mensagem: ' + payload.absenceNote);
+        }
+        return 'https://wa.me/' + waDigits + '?text=' + encodeURIComponent(lines.join('\n'));
+      }
+
       try {
+        var waConfirmEl = byId('rsvp-whatsapp-confirm');
+        if (isStaticPages) {
+          var updatedStatic = Object.assign({}, currentInvite || { token: currentInviteToken || '', familyName: '', maxGuests: getMaxAllowedGuests() }, {
+            status: pendingRsvpPayload.response,
+            respondentName: pendingRsvpPayload.name,
+            confirmedGuests: pendingRsvpPayload.guests,
+            confirmedCount: pendingRsvpPayload.guests.length,
+            phoneMask: maskPhone(pendingRsvpPayload.phone),
+            absenceNote: pendingRsvpPayload.absenceNote
+          });
+          currentInvite = updatedStatic;
+          try {
+            var map = JSON.parse(global.localStorage.getItem(STATIC_RSVP_KEY) || '{}');
+            map[getStaticCacheKey()] = updatedStatic;
+            global.localStorage.setItem(STATIC_RSVP_KEY, JSON.stringify(map));
+          } catch (_) {}
+          if (waConfirmEl) {
+            waConfirmEl.href = buildWhatsAppConfirmHref(pendingRsvpPayload);
+            waConfirmEl.hidden = false;
+          }
+          currentRespondentName = pendingRsvpPayload.name;
+          syncInviteUi();
+          var headingS = byId('rsvp-next-heading');
+          var nextSummaryS = byId('rsvp-next-summary');
+          var calBtnS = byId('rsvp-open-calendar');
+          if (pendingRsvpPayload.response === 'yes') {
+            headingS.innerHTML = 'Presença <em>registrada!</em>';
+            nextSummaryS.textContent = 'Suas senhas foram registradas neste aparelho. Toque abaixo para enviar a confirmação aos noivos pelo WhatsApp.';
+            calBtnS.hidden = false;
+          } else {
+            headingS.innerHTML = 'Resposta <em>registrada.</em>';
+            nextSummaryS.textContent = 'Obrigado por nos avisar. Se quiser, envie a mensagem aos noivos pelo WhatsApp abaixo.';
+            calBtnS.hidden = true;
+          }
+          showRsvpStep('next');
+          sound.success();
+          toast('Resposta registrada! Envie pelo WhatsApp para confirmar.');
+          return;
+        }
+        if (waConfirmEl) waConfirmEl.hidden = true;
         if (!pendingRsvpRequestId) pendingRsvpRequestId = requestId();
         var body = Object.assign({}, pendingRsvpPayload, { requestId: pendingRsvpRequestId });
         var result = await request('/api/rsvps', {
@@ -2061,14 +2181,58 @@
       } catch (_) {
         params = new URLSearchParams();
       }
-      var urlToken = params.get('c') || params.get('convite') || params.get('token') || '';
+      var keyParam = params.get('k') || params.get('key') || params.get('chave') || '';
+      var decodedKey = keyParam ? global.WeddingUtils.decodeInviteKey(keyParam) : null;
+      var urlToken = params.get('c') || params.get('convite') || params.get('token') || (decodedKey && decodedKey.token) || '';
+      var rawSenhas = params.get('s') || params.get('senhas') || params.get('vagas') || '';
+      var familyParam = (params.get('f') || params.get('familia') || (decodedKey && decodedKey.familyName) || '').trim();
+      var explicitSeats = rawSenhas && /^\d{1,2}$/.test(rawSenhas) ? Math.max(1, Math.min(20, Number(rawSenhas))) : (decodedKey ? decodedKey.maxGuests : 0);
+
       var storedToken = '';
+      var storedKey = '';
       try {
         storedToken = global.localStorage.getItem(INVITE_TOKEN_KEY) || '';
+        storedKey = global.localStorage.getItem('convite_family_key_v1') || '';
       } catch (_) {}
 
-      if (urlToken) await loadInviteByToken(urlToken, true);
-      else if (storedToken) await loadInviteByToken(storedToken, true);
+      if (keyParam && decodedKey) {
+        try { global.localStorage.setItem('convite_family_key_v1', keyParam); } catch (_) {}
+      } else if (!explicitSeats && !urlToken && storedKey) {
+        decodedKey = global.WeddingUtils.decodeInviteKey(storedKey);
+        if (decodedKey) {
+          explicitSeats = decodedKey.maxGuests;
+          familyParam = familyParam || decodedKey.familyName;
+          urlToken = decodedKey.token || '';
+        }
+      }
+
+      if (explicitSeats || (urlToken && isStaticPages)) {
+        currentInviteToken = urlToken || '';
+        currentInvite = {
+          token: currentInviteToken,
+          familyName: familyParam || '',
+          maxGuests: explicitSeats || 2,
+          status: 'pending',
+          confirmedGuests: []
+        };
+        if (isStaticPages) {
+          try {
+            var staticMap = JSON.parse(global.localStorage.getItem('convite_static_rsvp_v1') || '{}');
+            var staticKey = currentInviteToken || currentInvite.familyName || 'default';
+            if (staticMap[staticKey]) {
+              currentInvite = Object.assign(currentInvite, staticMap[staticKey]);
+            }
+          } catch (_) {}
+        }
+        syncInviteUi();
+        populateFormFromInvite(currentInvite);
+      }
+
+      if (urlToken && !isStaticPages) {
+        await loadInviteByToken(urlToken, true);
+      } else if (!urlToken && storedToken && !isStaticPages && !explicitSeats) {
+        await loadInviteByToken(storedToken, true);
+      }
 
       if (params.get('aberto') === '1') {
         reveal(true);
