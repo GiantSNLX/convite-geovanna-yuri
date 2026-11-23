@@ -378,9 +378,8 @@
         .set('.wax-seal', { zIndex: 4 }, 0.28)
         .to('.envelope-flap', { transformPerspective: 1400, rotationX: 180, duration: 0.85, transformOrigin: '50% 0%' }, 0.1)
         .set('.envelope-flap', { zIndex: 0 }, 0.52)
-        .fromTo('.envelope-letter', { opacity: 0, yPercent: 26 }, { opacity: 1, duration: 0.12, ease: 'none' }, 0.48)
-        .to('.stationery', { yPercent: 24, rotation: -2, duration: 1.05, ease: 'power2.out' }, 0.52)
-        .to('.envelope-letter', { yPercent: -20, duration: 1.25, ease: 'power3.out' }, 0.54)
+        .to('.stationery', { yPercent: 24, rotation: -2, duration: 1.05, ease: 'power2.out' }, 0.48)
+        .to('.envelope-letter', { yPercent: -120, duration: 1.35, ease: 'power3.out' }, 0.48)
         .to('.envelope-scene', { opacity: 0, duration: 0.65 }, 5.75);
       openingTimer = global.setTimeout(function () { reveal(false); }, 7800);
     });

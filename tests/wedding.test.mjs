@@ -208,7 +208,7 @@ test('Preview server serves invitation, admin panel, .ics inline, moderates mess
   try {
     const home = await dispatchRequest(server, { url: '/' });
     assert.equal(home.status, 200);
-    assert.match(home.text(), /Yuri &amp; Geovanna|Yuri & Geovanna/);
+    assert.match(home.text(), /Geovanna &amp; Yuri|Geovanna & Yuri/);
 
     const adminPage = await dispatchRequest(server, { url: '/admin' });
     assert.equal(adminPage.status, 200);
