@@ -6,6 +6,8 @@
   var all = function (sel) { return Array.from(document.querySelectorAll(sel)); };
   var toastTimer;
   var currentFilter = 'pending';
+  var currentInviteFilter = 'all';
+  var inviteSearchQuery = '';
   var cachedInvites = [];
   var cachedMessages = [];
 
@@ -52,24 +54,10 @@
     return ok;
   }
 
-  function encodeInviteKey(inv) {
-    var payload = {
-      t: inv.token || '',
-      f: inv.familyName || '',
-      n: Math.max(1, Math.min(20, Number(inv.maxGuests) || 1))
-    };
-    var bytes = new TextEncoder().encode(JSON.stringify(payload));
-    var bin = '';
-    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-  }
-
   function buildInviteLink(inviteOrToken) {
+    var token = inviteOrToken && typeof inviteOrToken === 'object' ? inviteOrToken.token : inviteOrToken;
     var base = global.location.origin + '/';
-    if (inviteOrToken && typeof inviteOrToken === 'object') {
-      return base + '?c=' + encodeURIComponent(inviteOrToken.token) + '&k=' + encodeInviteKey(inviteOrToken);
-    }
-    return base + '?c=' + encodeURIComponent(inviteOrToken);
+    return base + '?c=' + encodeURIComponent(token || '');
   }
 
   function formatDate(iso) {
@@ -108,7 +96,27 @@
       return;
     }
 
-    cachedInvites.forEach(function (inv) {
+    var q = inviteSearchQuery.trim().toLowerCase();
+    var filtered = cachedInvites.filter(function (inv) {
+      if (currentInviteFilter !== 'all' && inv.status !== currentInviteFilter) return false;
+      if (!q) return true;
+      var hay = [
+        inv.familyName,
+        inv.token,
+        inv.respondentName,
+        (inv.confirmedGuests || []).map(function (g) { return g.name; }).join(' ')
+      ].join(' ').toLowerCase();
+      return hay.indexOf(q) !== -1;
+    });
+
+    if (!filtered.length) {
+      var none = document.createElement('p');
+      none.textContent = 'Nenhum convite encontrado para esse filtro.';
+      container.appendChild(none);
+      return;
+    }
+
+    filtered.forEach(function (inv) {
       var row = document.createElement('article');
       row.className = 'invite-item' + (inv.active ? '' : ' is-inactive');
 
@@ -123,10 +131,10 @@
       var statusLabel = !inv.active
         ? 'Link desativado'
         : inv.status === 'yes'
-          ? 'Presença confirmada (' + inv.confirmedCount + ' de ' + inv.maxGuests + ')'
+          ? 'Presença confirmada (' + inv.confirmedCount + ' de ' + inv.maxGuests + (inv.maxGuests === 1 ? ' senha)' : ' senhas)')
           : inv.status === 'no'
             ? 'Ausência informada'
-            : 'Sem resposta (até ' + inv.maxGuests + ')';
+            : 'Sem resposta (' + inv.maxGuests + (inv.maxGuests === 1 ? ' senha disponível)' : ' senhas disponíveis)');
       pill.className = 'status-pill is-' + inv.status;
       pill.textContent = statusLabel;
       titleRow.append(title, pill);
@@ -134,7 +142,7 @@
 
       var linkLine = document.createElement('p');
       linkLine.className = 'invite-meta-line';
-      linkLine.textContent = 'Link individual: ' + buildInviteLink(inv);
+      linkLine.textContent = 'Chave: ' + inv.token + ' · Link: ' + buildInviteLink(inv);
       info.appendChild(linkLine);
 
       if (inv.status === 'yes' && inv.confirmedGuests && inv.confirmedGuests.length) {
@@ -408,6 +416,23 @@
       statusEl.textContent = err.message;
     }
   });
+
+  all('[data-invite-filter]').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      currentInviteFilter = tab.getAttribute('data-invite-filter') || 'all';
+      all('[data-invite-filter]').forEach(function (t) {
+        t.classList.toggle('is-active', t === tab);
+      });
+      renderInvites();
+    });
+  });
+
+  if (byId('invite-search-input')) {
+    byId('invite-search-input').addEventListener('input', function () {
+      inviteSearchQuery = this.value || '';
+      renderInvites();
+    });
+  }
 
   all('[data-msg-filter]').forEach(function (tab) {
     tab.addEventListener('click', function () {

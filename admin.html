@@ -185,6 +185,20 @@
       flex-wrap: wrap;
       gap: 8px;
     }
+    .invite-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 18px 0 14px;
+    }
+    .invite-search {
+      min-height: 42px;
+      min-width: 260px;
+      max-width: 340px;
+      flex: 1 1 260px;
+    }
     .filter-tab {
       padding: 7px 14px;
       border-radius: 999px;
@@ -222,7 +236,7 @@
   <header class="admin-header">
     <div class="wrap admin-header-inner">
       <a class="wordmark" href="./" aria-label="Voltar ao convite público">
-        <span class="wordmark-monogram" aria-hidden="true">Y<span>&amp;</span>G</span>
+        <span class="wordmark-monogram" aria-hidden="true">G<span>&amp;</span>Y</span>
         <span class="wordmark-names">Painel dos Noivos · Geovanna &amp; Yuri</span>
       </a>
       <div class="invite-actions" id="admin-top-actions" hidden>
@@ -264,7 +278,7 @@
           <div class="metric-card">
             <span class="section-tag">Pessoas convidadas</span>
             <strong class="metric-value" id="metric-invited-people">0</strong>
-            <span class="metric-sub">Soma dos lugares previstos</span>
+            <span class="metric-sub">Soma das senhas liberadas</span>
           </div>
           <div class="metric-card">
             <span class="section-tag">Pessoas confirmadas</span>
@@ -305,12 +319,22 @@
             <input id="new-family-name" name="familyName" maxlength="120" required placeholder="Ex: Família Silva ou João e Maria">
           </div>
           <div class="form-field">
-            <label for="new-max-guests">Limite de pessoas</label>
+            <label for="new-max-guests">Quantidade de senhas</label>
             <input id="new-max-guests" name="maxGuests" type="number" min="1" max="30" value="2" required>
           </div>
           <button id="create-invite-btn" class="button" type="submit">Criar convite</button>
         </form>
         <p id="create-invite-status" class="form-status" role="status" aria-live="polite"></p>
+
+        <div class="invite-toolbar">
+          <input id="invite-search-input" class="invite-search" type="search" placeholder="Buscar família, código ou convidado...">
+          <div class="filter-tabs" role="tablist" aria-label="Filtrar convites por confirmação">
+            <button type="button" class="filter-tab is-active" data-invite-filter="all">Todos</button>
+            <button type="button" class="filter-tab" data-invite-filter="yes">Confirmados</button>
+            <button type="button" class="filter-tab" data-invite-filter="pending">Sem resposta</button>
+            <button type="button" class="filter-tab" data-invite-filter="no">Ausentes</button>
+          </div>
+        </div>
 
         <div id="invites-list" class="invites-list" aria-live="polite"></div>
       </section>
@@ -355,7 +379,7 @@
             <input id="edit-family-name" required maxlength="120">
           </div>
           <div class="form-field">
-            <label for="edit-max-guests">Limite de pessoas</label>
+            <label for="edit-max-guests">Quantidade de senhas</label>
             <input id="edit-max-guests" type="number" min="1" max="30" required>
           </div>
         </div>

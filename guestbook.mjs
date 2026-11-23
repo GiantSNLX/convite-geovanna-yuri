@@ -37,16 +37,14 @@ export function maskPhone(phone) {
   return digits ? `final ${digits}` : 'não informado';
 }
 
-function slugifyToken(familyName) {
-  const base = normalizeSingleLine(familyName)
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 24) || 'convite';
-  const suffix = randomBytes(3).toString('hex');
-  return `${base}-${suffix}`;
+const SHORT_KEY_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function generateShortKey(length = 6) {
+  const bytes = randomBytes(length);
+  let out = '';
+  for (let i = 0; i < length; i += 1) {
+    out += SHORT_KEY_ALPHABET[bytes[i] % SHORT_KEY_ALPHABET.length];
+  }
+  return out;
 }
 
 export function validateMessage(input) {
@@ -288,10 +286,10 @@ export function createGuestbookStore(filename) {
       if (!Number.isInteger(max) || max < 1 || max > 30) {
         throw new Error('O limite de pessoas deve ser um número entre 1 e 30.');
       }
-      let token = customToken ? normalizeSingleLine(customToken).toLowerCase().replace(/[^a-z0-9-_]/g, '') : slugifyToken(cleanName);
-      if (token.length < 3) token = slugifyToken(cleanName);
-      if (inviteByTokenStmt.get(token)) {
-        token = slugifyToken(cleanName);
+      let token = customToken ? normalizeSingleLine(customToken).toLowerCase().replace(/[^a-z0-9-_]/g, '') : generateShortKey();
+      if (token.length < 3) token = generateShortKey();
+      while (inviteByTokenStmt.get(token)) {
+        token = generateShortKey();
       }
       const now = new Date().toISOString();
       const info = insertInviteStmt.run(token, cleanName, max, now);
