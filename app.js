@@ -1258,36 +1258,22 @@
       byId('pix-recipient').textContent = 'Beneficiário: ' + gifts.pixRecipient;
       byId('pix-recipient').hidden = false;
     }
-    var pixBrCode = '';
     if (gifts.pixKey && global.WeddingQR) {
       try {
-        pixBrCode = global.WeddingQR.buildPixBrCode({
+        var pixBrCode = global.WeddingQR.buildPixBrCode({
           key: gifts.pixKey,
           merchantName: gifts.pixRecipient || 'Yuri Menezes Tanaka',
           merchantCity: 'Manaus'
         });
         if (pixBrCode) {
           byId('pix-qr-box').innerHTML = global.WeddingQR.toSvg(pixBrCode, {
-            margin: 3,
+            margin: 2,
             color: '#24321e',
             background: '#fffdf8'
           });
-          byId('pix-qr-card').hidden = false;
+          byId('pix-qr-box').hidden = false;
         }
       } catch (_) {}
-    }
-    if (byId('copy-pix-code')) {
-      byId('copy-pix-code').hidden = !pixBrCode;
-      byId('copy-pix-code').addEventListener('click', async function () {
-        var status = document.querySelector('[data-pix-status]');
-        if (!pixBrCode) return;
-        var copied = await copy(pixBrCode);
-        if (copied) sound.success();
-        status.className = 'form-status ' + (copied ? 'is-success' : '');
-        status.textContent = copied
-          ? 'Pix Copia e Cola copiado. Cole na opção Pix Copia e Cola do seu banco.'
-          : 'Não foi possível copiar automaticamente. Use a chave Pix acima.';
-      });
     }
     all('[data-open-pix]').forEach(function (button) {
       button.addEventListener('click', function () {
@@ -1307,7 +1293,7 @@
       var copied = await copy(gifts.pixKey, byId('pix-key'));
       if (copied) sound.success();
       status.className = 'form-status ' + (copied ? 'is-success' : '');
-      status.textContent = copied ? 'Chave Pix copiada.' : 'Selecione a chave acima e use a opção Copiar do seu aparelho.';
+      status.textContent = copied ? 'Chave Pix copiada! Cole no app do seu banco.' : 'Selecione a chave acima e copie no seu aparelho.';
     });
 
     function syncCalendarLinks() {
