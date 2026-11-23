@@ -336,20 +336,21 @@
       }
       if (!global.gsap) {
         document.body.classList.add('css-opening');
-        openingTimer = global.setTimeout(function () { reveal(false); }, 2650);
+        openingTimer = global.setTimeout(function () { reveal(false); }, 3600);
         return;
       }
       openingTimeline = global.gsap.timeline({ onComplete: function () { reveal(false); }, defaults: { ease: 'power2.inOut' } });
       openingTimeline
-        .to('.wax-seal', { scale: 1.12, y: 12, opacity: 0, duration: 0.35 }, 0)
-        .to('.envelope-flap', { rotationX: 180, duration: 0.85, transformOrigin: '50% 0%' }, 0.22)
-        .to('.cover-heading', { y: -18, opacity: 0, duration: 0.45 }, 0.45)
-        .to('.open-hint,.cover-bottom>p', { opacity: 0, duration: 0.4 }, 0.9)
-        .set('.envelope-flap', { zIndex: 0 }, 1.08)
-        .to('.envelope-letter', { yPercent: -48, scale: 1.04, duration: 1, ease: 'power3.out' }, 0.95)
-        .to('.stationery', { yPercent: 16, scale: 1.06, duration: 0.75 }, 1.7)
-        .to('.envelope-scene', { opacity: 0, duration: 0.45 }, 2.2);
-      openingTimer = global.setTimeout(function () { reveal(false); }, 4200);
+        .to('.cover-heading', { y: -16, opacity: 0, duration: 0.45 }, 0.1)
+        .to('.open-hint,.cover-bottom>p', { y: 12, opacity: 0, duration: 0.4 }, 0.15)
+        .to('.wax-seal', { scale: 0.96, y: 12, duration: 0.45, ease: 'power2.out' }, 0)
+        .set('.wax-seal', { zIndex: 4 }, 0.35)
+        .to('.envelope-flap', { rotationX: 180, duration: 0.85, transformOrigin: '50% 0%' }, 0.15)
+        .set('.envelope-flap', { zIndex: 0 }, 0.62)
+        .to('.stationery', { yPercent: 24, rotation: -2.2, scale: 0.98, duration: 1.05, ease: 'power2.out' }, 0.6)
+        .fromTo('.envelope-letter', { opacity: 0, yPercent: 18 }, { opacity: 1, yPercent: -29, scale: 1.04, duration: 1.2, ease: 'power3.out' }, 0.62)
+        .to('.envelope-scene', { opacity: 0, duration: 0.6 }, 3.15);
+      openingTimer = global.setTimeout(function () { reveal(false); }, 5200);
     });
 
     byId('replay-envelope').addEventListener('click', function () {
