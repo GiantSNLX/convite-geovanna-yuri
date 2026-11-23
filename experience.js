@@ -81,7 +81,7 @@
         return;
       }
       Object.keys(fields).forEach(function (key) { setText(fields[key], String(countdown[key]).padStart(2, '0')); });
-      setText(caption, countdown.state === 'started' ? 'Chegou a hora de celebrar!' : countdown.state === 'today' ? 'É hoje! Nosso encontro está chegando.' : 'Cada segundo nos aproxima do nosso sim.');
+      setText(caption, countdown.state === 'started' ? 'Chegou a hora de celebrar!' : countdown.state === 'today' ? 'É hoje! Nosso encontro está chegando.' : 'Falta pouco para celebrarmos juntos.');
       setText(accessible, readable(countdown));
       finished = countdown.state === 'started';
     }

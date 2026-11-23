@@ -28,8 +28,8 @@ window.WEDDING_CONFIG = {
     pixRecipient: 'Geovanna de Souza e Souza / Yuri Menezes Tanaka'
   },
   rsvp: {
-    whatsapp: '',
-    email: '',
+    whatsapp: '5592984849557',
+    email: 'casamento@yuritanaka.com.br',
     deadline: '',
     askAge: false,
     requireInviteLink: true,

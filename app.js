@@ -282,6 +282,266 @@
     var muralLoaded = false;
     var dialogOpeners = new WeakMap();
     var INVITE_TOKEN_KEY = 'convite_family_token_v1';
+    var SOUND_PREF_KEY = 'convite_sound_v1';
+
+    function createSoundEngine() {
+      var AudioCtx = global.AudioContext || global.webkitAudioContext;
+      var ctx = null;
+      var master = null;
+      var noiseBuffer = null;
+      var enabled = true;
+      var ambientTimer = null;
+      var chordIndex = 0;
+      var lastHoverAt = 0;
+      var lastBlockAt = 0;
+      var lastEnvHoverAt = 0;
+      var chords = [
+        [293.66, 369.99, 440.0, 554.37],
+        [246.94, 293.66, 369.99, 440.0],
+        [196.0, 293.66, 369.99, 493.88],
+        [220.0, 277.18, 329.63, 440.0]
+      ];
+      try {
+        enabled = global.localStorage.getItem(SOUND_PREF_KEY) !== 'off';
+      } catch (_) {}
+
+      function ensureCtx(allowCreate) {
+        if (!enabled || !AudioCtx) return null;
+        if (!ctx) {
+          if (!allowCreate) return null;
+          try {
+            ctx = new AudioCtx();
+            master = ctx.createGain();
+            master.gain.value = 0.72;
+            var warmth = ctx.createBiquadFilter();
+            warmth.type = 'lowpass';
+            warmth.frequency.value = 6800;
+            master.connect(warmth);
+            warmth.connect(ctx.destination);
+          } catch (_) {
+            ctx = null;
+            return null;
+          }
+        }
+        if (ctx.state === 'suspended' && allowCreate) {
+          try { ctx.resume().catch(function () {}); } catch (_) {}
+        }
+        return ctx;
+      }
+
+      function getNoise(c) {
+        if (noiseBuffer) return noiseBuffer;
+        var length = Math.floor(c.sampleRate * 1.4);
+        var buf = c.createBuffer(1, length, c.sampleRate);
+        var data = buf.getChannelData(0);
+        var b0 = 0;
+        var b1 = 0;
+        var b2 = 0;
+        for (var i = 0; i < length; i++) {
+          var white = Math.random() * 2 - 1;
+          b0 = 0.99765 * b0 + white * 0.099046;
+          b1 = 0.963 * b1 + white * 0.2965164;
+          b2 = 0.57 * b2 + white * 1.0526913;
+          data[i] = (b0 + b1 + b2 + white * 0.1848) * 0.16;
+        }
+        noiseBuffer = buf;
+        return buf;
+      }
+
+      function playTone(c, opts) {
+        var now = c.currentTime + (opts.delay || 0);
+        var osc = c.createOscillator();
+        var harm = c.createOscillator();
+        var gain = c.createGain();
+        var peak = opts.gain || 0.08;
+        var dur = opts.dur || 0.7;
+        osc.type = opts.type || 'triangle';
+        osc.frequency.setValueAtTime(opts.freq, now);
+        if (opts.freqEnd) {
+          osc.frequency.exponentialRampToValueAtTime(Math.max(40, opts.freqEnd), now + dur);
+        }
+        harm.type = 'sine';
+        harm.frequency.setValueAtTime(opts.freq * 2, now);
+        var harmGain = c.createGain();
+        harmGain.gain.value = opts.harm != null ? opts.harm : 0.14;
+        harm.connect(harmGain);
+        harmGain.connect(gain);
+        osc.connect(gain);
+        gain.connect(master);
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.linearRampToValueAtTime(peak, now + (opts.attack || 0.014));
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+        osc.start(now);
+        harm.start(now);
+        osc.stop(now + dur + 0.05);
+        harm.stop(now + dur + 0.05);
+      }
+
+      function playNoise(c, opts) {
+        var now = c.currentTime + (opts.delay || 0);
+        var src = c.createBufferSource();
+        src.buffer = getNoise(c);
+        var filter = c.createBiquadFilter();
+        filter.type = opts.filterType || 'bandpass';
+        filter.Q.value = opts.q || 1.3;
+        filter.frequency.setValueAtTime(opts.freqStart || 950, now);
+        if (opts.freqEnd) {
+          filter.frequency.exponentialRampToValueAtTime(opts.freqEnd, now + (opts.dur || 0.4));
+        }
+        var gain = c.createGain();
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.linearRampToValueAtTime(opts.gain || 0.06, now + (opts.attack || 0.04));
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + (opts.dur || 0.4));
+        src.connect(filter);
+        filter.connect(gain);
+        gain.connect(master);
+        src.start(now);
+        src.stop(now + (opts.dur || 0.4) + 0.05);
+      }
+
+      function stopAmbient() {
+        if (ambientTimer) {
+          global.clearInterval(ambientTimer);
+          ambientTimer = null;
+        }
+      }
+
+      function playAmbientChord() {
+        if (!enabled || document.hidden) return;
+        var c = ensureCtx(false);
+        if (!c || c.state !== 'running') return;
+        var chord = chords[chordIndex % chords.length];
+        chordIndex += 1;
+        chord.forEach(function (freq, idx) {
+          playTone(c, {
+            freq: freq,
+            type: 'sine',
+            harm: 0.05,
+            gain: 0.015,
+            attack: 1.5,
+            dur: 5.4,
+            delay: idx * 0.16
+          });
+        });
+      }
+
+      function startAmbient() {
+        stopAmbient();
+        if (!enabled || !document.body.classList.contains('is-open')) return;
+        playAmbientChord();
+        ambientTimer = global.setInterval(playAmbientChord, 6200);
+      }
+
+      function syncToggleButtons() {
+        all('#sound-toggle,#cover-sound-toggle').forEach(function (btn) {
+          btn.setAttribute('aria-pressed', String(enabled));
+          btn.setAttribute('aria-label', enabled ? 'Som do convite ativado' : 'Som do convite silenciado');
+          var lbl = btn.querySelector('.sound-label, span:last-child');
+          if (lbl) lbl.textContent = enabled ? 'Som' : 'Mudo';
+        });
+      }
+
+      return {
+        isEnabled: function () { return enabled; },
+        syncUi: syncToggleButtons,
+        toggle: function () {
+          enabled = !enabled;
+          try { global.localStorage.setItem(SOUND_PREF_KEY, enabled ? 'on' : 'off'); } catch (_) {}
+          syncToggleButtons();
+          if (!enabled) {
+            stopAmbient();
+            if (master && ctx) master.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.05);
+            return;
+          }
+          var c = ensureCtx(true);
+          if (master && c) master.gain.setTargetAtTime(0.72, c.currentTime, 0.04);
+          if (c) {
+            playTone(c, { freq: 587.33, type: 'triangle', harm: 0.16, gain: 0.06, dur: 0.55 });
+            playTone(c, { freq: 880.0, type: 'sine', harm: 0.08, gain: 0.05, dur: 0.65, delay: 0.07 });
+          }
+          if (document.body.classList.contains('is-open')) startAmbient();
+        },
+        envelopeHover: function () {
+          var nowMs = global.performance.now();
+          if (nowMs - lastEnvHoverAt < 750) return;
+          var c = ensureCtx(false);
+          if (!c || c.state !== 'running') return;
+          lastEnvHoverAt = nowMs;
+          playNoise(c, { freqStart: 1350, freqEnd: 1750, q: 1.8, gain: 0.018, attack: 0.03, dur: 0.24 });
+        },
+        envelopeOpen: function () {
+          var c = ensureCtx(true);
+          if (!c) return;
+          playTone(c, { freq: 145, freqEnd: 58, type: 'sine', harm: 0.05, gain: 0.14, attack: 0.003, dur: 0.14 });
+          playNoise(c, { freqStart: 2200, freqEnd: 950, q: 2.1, gain: 0.085, attack: 0.004, dur: 0.075 });
+          playNoise(c, { freqStart: 620, freqEnd: 1750, q: 1.2, gain: 0.085, attack: 0.09, dur: 0.72, delay: 0.12 });
+          playNoise(c, { freqStart: 1150, freqEnd: 2050, q: 1.5, gain: 0.065, attack: 0.12, dur: 0.95, delay: 0.48 });
+          [293.66, 440.0, 659.25, 739.99, 880.0].forEach(function (freq, i) {
+            playTone(c, { freq: freq, type: 'triangle', harm: 0.18, gain: 0.075, attack: 0.018, dur: 1.85, delay: 0.62 + i * 0.14 });
+          });
+        },
+        envelopeReveal: function () {
+          var c = ensureCtx(false);
+          if (!c || c.state !== 'running') return;
+          [293.66, 369.99, 440.0, 587.33].forEach(function (freq, i) {
+            playTone(c, { freq: freq, type: 'sine', harm: 0.1, gain: 0.045, attack: 0.04, dur: 1.6, delay: i * 0.07 });
+          });
+          startAmbient();
+        },
+        stopAmbient: stopAmbient,
+        startAmbient: startAmbient,
+        click: function () {
+          var c = ensureCtx(true);
+          if (!c) return;
+          playTone(c, { freq: 510, freqEnd: 350, type: 'sine', harm: 0.08, gain: 0.055, attack: 0.003, dur: 0.065 });
+          playNoise(c, { freqStart: 1800, freqEnd: 1100, q: 2.4, gain: 0.018, attack: 0.003, dur: 0.035 });
+        },
+        hover: function () {
+          var nowMs = global.performance.now();
+          if (nowMs - lastHoverAt < 140) return;
+          var c = ensureCtx(false);
+          if (!c || c.state !== 'running') return;
+          lastHoverAt = nowMs;
+          playTone(c, { freq: 1480, freqEnd: 1680, type: 'sine', harm: 0.02, gain: 0.014, attack: 0.004, dur: 0.05 });
+        },
+        blockChange: function (idx) {
+          var nowMs = global.performance.now();
+          if (nowMs - lastBlockAt < 480) return;
+          var c = ensureCtx(false);
+          if (!c || c.state !== 'running') return;
+          lastBlockAt = nowMs;
+          var notes = [587.33, 659.25, 739.99, 880.0, 659.25, 587.33];
+          playNoise(c, { freqStart: 900, freqEnd: 1450, q: 1.6, gain: 0.022, attack: 0.03, dur: 0.24 });
+          playTone(c, { freq: notes[idx % notes.length], type: 'sine', harm: 0.08, gain: 0.032, attack: 0.02, dur: 0.65 });
+        },
+        modal: function (open) {
+          var c = ensureCtx(true);
+          if (!c) return;
+          var seq = open ? [587.33, 880.0] : [739.99, 523.25];
+          playTone(c, { freq: seq[0], type: 'triangle', harm: 0.1, gain: 0.05, attack: 0.008, dur: 0.36 });
+          playTone(c, { freq: seq[1], type: 'sine', harm: 0.06, gain: 0.045, attack: 0.01, dur: 0.45, delay: 0.065 });
+        },
+        success: function () {
+          var c = ensureCtx(true);
+          if (!c) return;
+          [587.33, 739.99, 880.0, 1174.66].forEach(function (freq, i) {
+            playTone(c, { freq: freq, type: 'triangle', harm: 0.14, gain: 0.065, attack: 0.01, dur: 0.9, delay: i * 0.075 });
+          });
+        }
+      };
+    }
+    var sound = createSoundEngine();
+    sound.syncUi();
+    all('#sound-toggle,#cover-sound-toggle').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        sound.toggle();
+      });
+    });
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) sound.stopAmbient();
+      else if (document.body.classList.contains('is-open')) sound.startAmbient();
+    });
 
     function toast(message) {
       global.clearTimeout(toastTimer);
@@ -304,17 +564,25 @@
       }
     }
 
+    var reactBitsMounted = false;
     function reveal(instant) {
       stopOpening();
       opening = false;
       byId('envelope-scene').hidden = true;
       byId('invitation').hidden = false;
       byId('invitation').classList.add('invitation-visible');
+      document.documentElement.classList.add('is-open-snap');
       document.body.classList.remove('is-sealed', 'is-opening', 'css-opening');
       document.body.classList.add('is-open');
+      if (!instant) sound.envelopeReveal();
+      else sound.startAmbient();
       if (!instant) byId('invitation').focus({ preventScroll: true });
       if (global.gsap && !reduced.matches && !instant) {
-        global.gsap.fromTo('.hero-copy,.hero-mark', { y: 22, opacity: 0 }, { y: 0, opacity: 1, duration: 0.75, stagger: 0.12, clearProps: 'transform,opacity' });
+        global.gsap.fromTo('.hero-copy', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, clearProps: 'transform,opacity' });
+      }
+      if (!reactBitsMounted) {
+        reactBitsMounted = true;
+        mountReactBits();
       }
       var target;
       try {
@@ -338,6 +606,7 @@
         if (!opening) envelopeBtn.style.transform = '';
       });
       envelopeScene.addEventListener('click', function (e) {
+        if (e.target.closest('#cover-sound-toggle')) return;
         if (opening) {
           if (openingTimeline && openingTimeline.time() > 1.8 && openingTimeline.time() < 5.7) {
             openingTimeline.time(5.75);
@@ -346,6 +615,9 @@
         }
         if (e.target.closest('#open-invitation')) return;
         envelopeBtn.click();
+      });
+      envelopeBtn.addEventListener('pointerenter', function (e) {
+        if (!opening && e.pointerType !== 'touch') sound.envelopeHover();
       });
     }
 
@@ -356,6 +628,7 @@
         }
         return;
       }
+      sound.envelopeOpen();
       opening = true;
       this.style.transform = '';
       this.disabled = true;
@@ -385,12 +658,15 @@
     });
 
     byId('replay-envelope').addEventListener('click', function () {
+      sound.stopAmbient();
+      sound.modal(false);
       stopOpening();
       opening = false;
       if (global.gsap) global.gsap.set(animatedParts, { clearProps: 'all' });
       byId('invitation').hidden = true;
       byId('invitation').classList.remove('invitation-visible');
       byId('envelope-scene').hidden = false;
+      document.documentElement.classList.remove('is-open-snap');
       document.body.classList.remove('is-open', 'is-opening', 'css-opening');
       document.body.classList.add('is-sealed');
       byId('open-invitation').disabled = false;
@@ -414,21 +690,334 @@
     }
 
     if ('IntersectionObserver' in global) {
+      var blockIds = ['inicio', 'contagem', 'presentes', 'mural', 'dia', 'encerramento'];
+      var currentBlockId = '';
+      var blockSoundArmed = false;
       var sectionObserver = new global.IntersectionObserver(
         function (entries) {
           entries.forEach(function (entry) {
             if (!entry.isIntersecting) return;
+            var id = entry.target.id;
+            if (currentBlockId && currentBlockId !== id && blockSoundArmed) {
+              sound.blockChange(Math.max(0, blockIds.indexOf(id)));
+            }
+            currentBlockId = id;
+            blockSoundArmed = true;
             all('.desktop-nav a,.mobile-menu a').forEach(function (link) {
-              if (link.getAttribute('href') === '#' + entry.target.id) link.setAttribute('aria-current', 'location');
+              if (link.getAttribute('href') === '#' + id) link.setAttribute('aria-current', 'location');
               else link.removeAttribute('aria-current');
+            });
+            all('.block-dots a').forEach(function (dot) {
+              if (dot.getAttribute('data-block-dot') === id) dot.setAttribute('aria-current', 'true');
+              else dot.removeAttribute('aria-current');
             });
           });
         },
-        { rootMargin: '-15% 0px -45% 0px' }
+        { threshold: 0.45 }
       );
-      all('#dia,#presentes,#mural').forEach(function (section) {
+      all('#inicio,#contagem,#presentes,#mural,#dia,#encerramento').forEach(function (section) {
         sectionObserver.observe(section);
       });
+    }
+
+    document.addEventListener('click', function (e) {
+      var target = e.target instanceof Element ? e.target.closest('button,a,.gift-link,.calendar-option') : null;
+      if (!target || target.disabled) return;
+      if (target.closest('#open-invitation,#sound-toggle,#cover-sound-toggle,#replay-envelope,[data-open-rsvp],[data-open-calendar],[data-open-pix],[data-close-dialog]')) return;
+      sound.click();
+    });
+    if (global.matchMedia('(pointer:fine)').matches) {
+      document.addEventListener('pointerenter', function (e) {
+        if (e.pointerType === 'touch' || !(e.target instanceof Element)) return;
+        var item = e.target.closest('.rb-spotlight,.rb-star-border,.gift-link');
+        if (item) sound.hover();
+      }, true);
+    }
+
+    // Navegação discreta por blocos (PageUp / PageDown) fora de diálogos e inputs
+    var snapBlocks = all('.snap-block');
+    document.addEventListener('keydown', function (e) {
+      if (!document.body.classList.contains('is-open') || document.querySelector('dialog[open]')) return;
+      if (e.target && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.target.tagName)) return;
+      if (e.key !== 'PageDown' && e.key !== 'PageUp') return;
+      e.preventDefault();
+      var currentIdx = 0;
+      var bestDist = Infinity;
+      snapBlocks.forEach(function (sec, idx) {
+        var dist = Math.abs(sec.getBoundingClientRect().top);
+        if (dist < bestDist) {
+          bestDist = dist;
+          currentIdx = idx;
+        }
+      });
+      var nextIdx = Math.max(0, Math.min(snapBlocks.length - 1, currentIdx + (e.key === 'PageDown' ? 1 : -1)));
+      snapBlocks[nextIdx].scrollIntoView({ behavior: reduced.matches ? 'auto' : 'smooth' });
+    });
+
+    // Porte React Bits (AnimatedContent + SpotlightCard + StarBorder, inspirado no portfólio do Yuri)
+    var spotlightObserverTargets = new Set();
+    var registerSpotlight = function () {};
+    function mountReactBits() {
+      var calm = reduced.matches;
+      // 1) AnimatedContent ([data-reveal])
+      var reveals = all('[data-reveal]');
+      if (!calm && 'IntersectionObserver' in global && reveals.length > 0) {
+        var revealObs = new global.IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (entry) {
+              if (!entry.isIntersecting) return;
+              revealObs.unobserve(entry.target);
+              entry.target.classList.add('reveal-run');
+              entry.target.classList.remove('reveal-pending');
+              global.setTimeout(function () { entry.target.classList.remove('reveal-run'); }, 850);
+            });
+          },
+          { rootMargin: '0px 0px -8% 0px' }
+        );
+        reveals.forEach(function (el) {
+          var rect = el.getBoundingClientRect();
+          if (rect.height > 0 && rect.top > global.innerHeight * 0.9) {
+            el.classList.add('reveal-pending');
+            revealObs.observe(el);
+          }
+        });
+      }
+
+      // 2) SpotlightCard (.rb-spotlight) em desktop com ponteiro fino
+      var finePointer = global.matchMedia('(hover: hover) and (pointer: fine)').matches;
+      if (finePointer && !calm && 'IntersectionObserver' in global) {
+        var states = new WeakMap();
+        var visibleCards = new Set();
+        var activeCards = new Set();
+        var pointer = { x: 0, y: 0, active: false };
+        var pressedCard = null;
+        var raf = 0;
+        var lastT = 0;
+
+        var ensureLayers = function (card) {
+          var st = states.get(card);
+          if (st) return st;
+          var border = document.createElement('span');
+          border.className = 'sc-borda';
+          border.setAttribute('aria-hidden', 'true');
+          var borderDot = document.createElement('i');
+          border.append(borderDot, document.createElement('b'));
+          var light = document.createElement('span');
+          light.className = 'sc-luz';
+          light.setAttribute('aria-hidden', 'true');
+          var lightDot = document.createElement('i');
+          light.append(lightDot);
+          card.prepend(border, light);
+          st = { light: light, lightDot: lightDot, border: border, borderDot: borderDot, x: 0, y: 0, presence: 0, flare: 0 };
+          states.set(card, st);
+          return st;
+        };
+
+        var scVisObs = new global.IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (e) {
+              if (e.isIntersecting) visibleCards.add(e.target);
+              else visibleCards.delete(e.target);
+            });
+            if (pointer.active) wake();
+          },
+          { rootMargin: '80px' }
+        );
+
+        registerSpotlight = function (el) {
+          if (!el || spotlightObserverTargets.has(el)) return;
+          spotlightObserverTargets.add(el);
+          scVisObs.observe(el);
+        };
+        all('.rb-spotlight').forEach(registerSpotlight);
+
+        var paint = function (s) {
+          var scale = (1 + 0.18 * s.flare).toFixed(3);
+          var boost = 1 + 0.65 * s.flare;
+          s.lightDot.style.transform = 'translate3d(' + (s.x - 1).toFixed(1) + 'px,' + (s.y - 1).toFixed(1) + 'px,0) scale(' + scale + ')';
+          s.borderDot.style.transform = 'translate3d(' + s.x.toFixed(1) + 'px,' + s.y.toFixed(1) + 'px,0) scale(' + scale + ')';
+          s.light.style.opacity = Math.min(1, s.presence * 0.15 * 0.34 * boost).toFixed(4);
+          s.border.style.opacity = Math.min(1, s.presence * 0.55 * 0.75 * boost).toFixed(4);
+        };
+
+        var tick = function (now) {
+          raf = 0;
+          var dt = Math.min(0.05, Math.max(0.001, (now - lastT) / 1000));
+          lastT = now;
+          var list = new Set(visibleCards);
+          activeCards.forEach(function (c) { list.add(c); });
+          var rects = new Map();
+          list.forEach(function (c) { rects.set(c, c.getBoundingClientRect()); });
+          var busy = false;
+          list.forEach(function (card) {
+            var r = rects.get(card);
+            var s = states.get(card);
+            var targetP = 0;
+            var tx = s ? s.x : 0;
+            var ty = s ? s.y : 0;
+            if (pointer.active) {
+              tx = pointer.x - r.left;
+              ty = pointer.y - r.top;
+              var d = Math.hypot(Math.max(0, -tx, tx - r.width), Math.max(0, -ty, ty - r.height));
+              targetP = d === 0 ? 1 : Math.pow(Math.max(0, 1 - d / 80), 2);
+            }
+            if (!s) {
+              if (targetP <= 0) return;
+              s = ensureLayers(card);
+            }
+            var press = pressedCard === card ? 1 : 0;
+            if (targetP === 0 && s.presence === 0 && s.flare === 0 && press === 0) {
+              activeCards.delete(card);
+              return;
+            }
+            if (s.presence < 0.02 && targetP > 0) {
+              s.x = tx;
+              s.y = ty;
+            }
+            var follow = 1 - Math.exp(-dt / (0.015 + 0.3 * 0.22));
+            s.x += (tx - s.x) * follow;
+            s.y += (ty - s.y) * follow;
+            s.presence += (targetP - s.presence) * (1 - Math.exp(-dt / (targetP > s.presence ? 0.1 : 0.32)));
+            if (Math.abs(targetP - s.presence) < 0.002) s.presence = targetP;
+            s.flare += (press - s.flare) * (1 - Math.exp(-dt / (press ? 0.05 : 0.28)));
+            if (Math.abs(press - s.flare) < 0.002) s.flare = press;
+            paint(s);
+            if (s.presence > 0 || s.flare > 0) activeCards.add(card);
+            else activeCards.delete(card);
+            if (Math.abs(tx - s.x) > 0.1 || Math.abs(ty - s.y) > 0.1 || s.presence !== targetP || s.flare !== press) busy = true;
+          });
+          if (busy) raf = global.requestAnimationFrame(tick);
+        };
+
+        var wake = function () {
+          if (raf) return;
+          lastT = global.performance.now();
+          raf = global.requestAnimationFrame(tick);
+        };
+
+        document.addEventListener('pointermove', function (e) {
+          if (e.pointerType === 'touch') return;
+          pointer.x = e.clientX;
+          pointer.y = e.clientY;
+          pointer.active = true;
+          wake();
+        }, { passive: true });
+        document.addEventListener('pointerout', function (e) {
+          if (e.relatedTarget) return;
+          pointer.active = false;
+          wake();
+        }, { passive: true });
+        document.addEventListener('pointerdown', function (e) {
+          if (e.pointerType === 'touch' || e.button !== 0) return;
+          var card = e.target instanceof Element ? e.target.closest('.rb-spotlight') : null;
+          if (!card) return;
+          pressedCard = card;
+          wake();
+        }, { passive: true });
+        var release = function () {
+          if (!pressedCard) return;
+          pressedCard = null;
+          wake();
+        };
+        global.addEventListener('pointerup', release, { passive: true });
+        global.addEventListener('pointercancel', release, { passive: true });
+      }
+
+      // 3) StarBorder (.rb-star-border) em botões e links principais
+      if (finePointer && !calm) {
+        var runStarBorder = function (el, origin) {
+          if (el.hasAttribute('data-sb-volta')) return;
+          var w = el.offsetWidth;
+          var h = el.offsetHeight;
+          if (w < 8 || h < 8) return;
+          var canvas = document.createElement('canvas');
+          var ctx = canvas.getContext('2d');
+          if (!ctx) return;
+          el.setAttribute('data-sb-volta', '');
+          canvas.className = 'sb-luz';
+          canvas.setAttribute('aria-hidden', 'true');
+          var bleed = 36;
+          var dpr = Math.min(global.devicePixelRatio || 1, 2);
+          canvas.width = Math.max(1, Math.round((w + bleed * 2) * dpr));
+          canvas.height = Math.max(1, Math.round((h + bleed * 2) * dpr));
+          el.append(canvas);
+
+          var rad = Math.min(12, w / 2, h / 2);
+          var perim = Math.max(1, 2 * (w + h));
+          var phase = origin ? Math.max(0, Math.min(perim, origin.x)) : 0;
+          var traveled = 0;
+          var fade = 0;
+          var leaving = false;
+          var last = global.performance.now();
+          var sraf = 0;
+          var pointOnRect = function (dist) {
+            var d = ((dist % perim) + perim) % perim;
+            if (d <= w) return { x: d, y: 0 };
+            d -= w;
+            if (d <= h) return { x: w, y: d };
+            d -= h;
+            if (d <= w) return { x: w - d, y: h };
+            d -= w;
+            return { x: 0, y: h - d };
+          };
+          var stopStar = function () {
+            global.cancelAnimationFrame(sraf);
+            canvas.remove();
+            el.removeAttribute('data-sb-volta');
+          };
+          var step = function (now) {
+            var dt = Math.min(0.05, Math.max(0.001, (now - last) / 1000));
+            last = now;
+            var speed = perim / 2.6;
+            var delta = speed * dt;
+            phase = (phase + delta) % perim;
+            traveled += delta;
+            if (traveled >= perim) leaving = true;
+            var targetF = leaving ? 0 : 1;
+            fade += (targetF - fade) * (1 - Math.exp(-dt / (targetF > fade ? 0.12 : 0.35)));
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.setTransform(dpr, 0, 0, dpr, bleed, bleed);
+            var trailLen = perim * 0.28;
+            var steps = 36;
+            var pPrev = pointOnRect(phase);
+            for (var i = 1; i <= steps; i += 1) {
+              var pCur = pointOnRect(phase - trailLen * (i / steps));
+              var u = 1 - i / steps;
+              ctx.lineWidth = 1.6;
+              ctx.strokeStyle = 'rgba(176,142,69,' + (u * u * 0.72 * fade).toFixed(3) + ')';
+              ctx.beginPath();
+              ctx.moveTo(pPrev.x, pPrev.y);
+              ctx.lineTo(pCur.x, pCur.y);
+              ctx.stroke();
+              pPrev = pCur;
+            }
+            var head = pointOnRect(phase);
+            var glow = ctx.createRadialGradient(head.x, head.y, 0, head.x, head.y, 18);
+            glow.addColorStop(0, 'rgba(176,142,69,' + (0.45 * fade).toFixed(3) + ')');
+            glow.addColorStop(1, 'rgba(176,142,69,0)');
+            ctx.fillStyle = glow;
+            ctx.fillRect(head.x - 18, head.y - 18, 36, 36);
+            if (leaving && fade < 0.02) {
+              stopStar();
+              return;
+            }
+            sraf = global.requestAnimationFrame(step);
+          };
+          sraf = global.requestAnimationFrame(step);
+        };
+
+        all('.rb-star-border').forEach(function (el) {
+          el.addEventListener('pointerenter', function (e) {
+            if (e.pointerType === 'touch') return;
+            var r = el.getBoundingClientRect();
+            runStarBorder(el, { x: e.clientX - r.left, y: e.clientY - r.top });
+          });
+          el.addEventListener('focusin', function () {
+            if (el.matches(':focus-visible')) runStarBorder(el, null);
+          });
+        });
+      }
     }
 
     function setMenu(open) {
@@ -453,11 +1042,17 @@
     function openDialog(dialog, trigger) {
       if (trigger && trigger.closest('#mobile-menu')) trigger = byId('menu-toggle');
       dialogOpeners.set(dialog, trigger || document.activeElement);
-      if (!dialog.open) dialog.showModal();
+      if (!dialog.open) {
+        sound.modal(true);
+        dialog.showModal();
+      }
       dialog.scrollTop = 0;
     }
     function closeDialog(dialog) {
-      if (dialog.open) dialog.close();
+      if (dialog.open) {
+        sound.modal(false);
+        dialog.close();
+      }
     }
     all('[data-close-dialog]').forEach(function (button) {
       button.addEventListener('click', function () {
@@ -518,7 +1113,9 @@
     byId('venue-map').src =
       'https://maps.google.com/maps?' + new URLSearchParams({ q: destination, z: '16', output: 'embed' }).toString();
     byId('copy-address').addEventListener('click', async function () {
-      toast((await copy(destination)) ? 'Endereço copiado.' : 'Selecione e copie o endereço exibido no convite.');
+      var copied = await copy(destination);
+      if (copied) sound.success();
+      toast(copied ? 'Endereço copiado.' : 'Selecione e copie o endereço exibido no convite.');
     });
 
     if (gifts.registryUrl) byId('registry-link').href = gifts.registryUrl;
@@ -544,6 +1141,7 @@
         return;
       }
       var copied = await copy(gifts.pixKey, byId('pix-key'));
+      if (copied) sound.success();
       status.className = 'form-status ' + (copied ? 'is-success' : '');
       status.textContent = copied ? 'Chave Pix copiada.' : 'Selecione a chave acima e use a opção Copiar do seu aparelho.';
     });
@@ -645,7 +1243,9 @@
           if (error && error.name === 'AbortError') return;
         }
       }
-      toast((await copy(url)) ? 'Link público do convite copiado.' : 'Copie o endereço público na barra do navegador.');
+      var sharedCopy = await copy(url);
+      if (sharedCopy) sound.success();
+      toast(sharedCopy ? 'Link público do convite copiado.' : 'Copie o endereço público na barra do navegador.');
     });
 
     var apiBase = String((config.guestbook && config.guestbook.apiBase) || '').replace(/\/$/, '');
@@ -685,7 +1285,7 @@
       if (seen.has(item.id)) return;
       seen.add(item.id);
       var card = document.createElement('article');
-      card.className = 'message-card';
+      card.className = 'message-card rb-spotlight';
       var text = document.createElement('p');
       text.textContent = item.message;
       var footer = document.createElement('footer');
@@ -702,6 +1302,7 @@
       card.append(text, footer);
       if (first) byId('guestbook-list').prepend(card);
       else byId('guestbook-list').appendChild(card);
+      registerSpotlight(card);
     }
     async function loadMessages() {
       if (loading) return;
@@ -717,7 +1318,7 @@
         byId('guestbook-more').hidden = !cursor;
         byId('guestbook-status').textContent = seen.size
           ? 'Recados cheios de carinho para a nossa história.'
-          : 'O primeiro recado aprovado aparecerá aqui. Escreva uma lembrança!';
+          : 'Ainda não há recados por aqui. Que tal deixar o primeiro?';
       } catch (_) {
         byId('guestbook-status').textContent = 'Não conseguimos carregar o mural agora.';
         byId('guestbook-retry').hidden = false;
@@ -802,7 +1403,7 @@
       });
     }
 
-    var PENDING_MESSAGE_NOTICE = 'Recado enviado!\nObrigado pelo carinho. Sua mensagem aparecerá no mural depois de ser revisada.';
+    var PENDING_MESSAGE_NOTICE = 'Recebemos sua mensagem com carinho!\nObrigado por fazer parte desse momento. Logo mais, seu recado estará disponível no mural.';
     function onMessageSubmitted(result, status, countId) {
       if (!result.message || !result.message.id) {
         throw new Error('Não conseguimos enviar agora. Confira sua conexão e tente novamente.');
@@ -811,7 +1412,8 @@
       byId(countId).textContent = '0 / 600';
       status.className = 'form-status is-success';
       status.textContent = PENDING_MESSAGE_NOTICE;
-      toast('Recado enviado! Ele aparecerá no mural após revisão.');
+      sound.success();
+      toast('Recebemos sua mensagem com carinho! Logo mais estará no mural.');
     }
 
     bindForm({
@@ -1311,6 +1913,7 @@
           calBtn.hidden = true;
         }
         showRsvpStep('next');
+        sound.success();
         toast(pendingRsvpPayload.response === 'yes' ? 'Presença confirmada!' : 'Resposta recebida.');
       } catch (error) {
         status.className = 'form-status is-error';
