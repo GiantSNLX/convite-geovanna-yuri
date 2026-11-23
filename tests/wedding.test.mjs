@@ -172,12 +172,18 @@ test('GuestbookStore handles message moderation, family invites, seat limits, up
     const rsvpUpdate = store.addRsvp({
       name: 'João Silva',
       response: 'yes',
-      guests: [{ name: 'João Silva' }, { name: 'Maria Silva' }, { name: 'Pedro Silva' }],
+      guests: [
+        { name: 'João Silva', ageGroup: 'adulto' },
+        { name: 'Maria Silva', ageGroup: 'adulto' },
+        { name: 'Pedro Silva', ageGroup: 'crianca' }
+      ],
       phone: '(92) 99123-1234',
       inviteToken: 'familia-silva',
       requestId: '22222222-2222-4222-8222-222222222224'
     });
     assert.equal(rsvpUpdate.invite.confirmedCount, 3);
+    assert.equal(rsvpUpdate.invite.confirmedGuests[2].ageGroup, 'crianca');
+    assert.match(store.exportInvitesForSheet()[0].confirmedNames, /Pedro Silva \(Criança 6–12\)/);
     assert.equal(store.getInviteHistory(invite.id).length, 2);
 
     const overview = store.getOverview();

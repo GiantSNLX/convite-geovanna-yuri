@@ -22,6 +22,22 @@ function normalizeMultiLine(value) {
     .trim();
 }
 
+function validateOptionalAgeGroup(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const clean = String(value).trim().toLowerCase();
+  if (!['adulto', 'crianca', 'isento'].includes(clean)) {
+    throw new Error('Selecione uma faixa de idade válida.');
+  }
+  return clean;
+}
+
+function formatAgeGroupShort(ageGroup) {
+  if (ageGroup === 'adulto') return 'Adulto 13+';
+  if (ageGroup === 'crianca') return 'Criança 6–12';
+  if (ageGroup === 'isento') return '0–5 anos';
+  return '';
+}
+
 function validateOptionalAge(value, label = 'a idade') {
   if (value === undefined || value === null || value === '') return null;
   const num = typeof value === 'number' ? value : Number(value);
@@ -88,7 +104,11 @@ export function validateRsvp(input) {
       throw new Error(`Escreva o nome completo da pessoa ${index + 1} (até 120 caracteres).`);
     }
     const guestAge = validateOptionalAge(guest.age, `a idade de ${guestName}`);
-    return guestAge === null ? { name: guestName } : { name: guestName, age: guestAge };
+    const ageGroup = validateOptionalAgeGroup(guest.ageGroup);
+    const entry = { name: guestName };
+    if (guestAge !== null) entry.age = guestAge;
+    if (ageGroup !== null) entry.ageGroup = ageGroup;
+    return entry;
   });
 
   if (input.response === 'no' && guests.length > 0) {
@@ -99,7 +119,7 @@ export function validateRsvp(input) {
   const digits = (rawPhone.match(/\d/g) || []).length;
   if (input.response === 'yes' || rawPhone.length > 0) {
     if (rawPhone.length < 8 || rawPhone.length > 30 || digits < 8) {
-      throw new Error('Informe um WhatsApp ou telefone válido com DDD.');
+      throw new Error('Informe um WhatsApp válido com DDD.');
     }
   }
 
@@ -366,7 +386,13 @@ export function createGuestbookStore(filename) {
       let confirmedGuests = (() => { try { return JSON.parse(row.confirmedGuestsJson || '[]'); } catch { return []; } })();
       if (Array.isArray(patch.confirmedGuests)) {
         confirmedGuests = patch.confirmedGuests
-          .map((g) => (typeof g === 'string' ? { name: normalizeSingleLine(g) } : { name: normalizeSingleLine(g && g.name) }))
+          .map((g) => {
+            if (typeof g === 'string') return { name: normalizeSingleLine(g) };
+            const obj = { name: normalizeSingleLine(g && g.name) };
+            const ag = validateOptionalAgeGroup(g && g.ageGroup);
+            if (ag) obj.ageGroup = ag;
+            return obj;
+          })
           .filter((g) => g.name.length > 0);
       }
       if (status !== 'yes') {
@@ -475,7 +501,10 @@ export function createGuestbookStore(filename) {
               ? 'Ausência informada'
               : 'Sem resposta',
         respondentName: inv.respondentName || '',
-        confirmedNames: inv.confirmedGuests.map((g) => g.name).join(', '),
+        confirmedNames: inv.confirmedGuests.map((g) => {
+          const ag = formatAgeGroupShort(g.ageGroup);
+          return ag ? `${g.name} (${ag})` : g.name;
+        }).join(', '),
         phone: inv.phone || '',
         confirmedCount: inv.confirmedCount,
         maxGuests: inv.maxGuests,
@@ -879,7 +908,7 @@ export function createGuestbookApi(store, options = {}) {
             { key: 'maxGuests', label: 'Limite do convite' },
             { key: 'confirmedNames', label: 'Nome das pessoas confirmadas' },
             { key: 'respondentName', label: 'Responsável pela resposta' },
-            { key: 'phone', label: 'Telefone do responsável' },
+            { key: 'phone', label: 'WhatsApp do responsável' },
             { key: 'absenceNote', label: 'Observação / Recado de ausência' },
             { key: 'token', label: 'Código do link' },
             { key: 'updatedAt', label: 'Última atualização' }

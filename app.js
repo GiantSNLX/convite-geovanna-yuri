@@ -1785,7 +1785,12 @@
     var guestsList = byId('rsvp-guests-list');
     var guestCounter = 0;
 
-    if (rsvpConfig.askAge) byId('guest-age-field').hidden = false;
+    function formatAgeGroupText(ageGroup) {
+      if (ageGroup === 'adulto') return 'Adulto (13+ anos)';
+      if (ageGroup === 'crianca') return 'Criança (6 a 12 anos)';
+      if (ageGroup === 'isento') return 'Criança pequena (0 a 5 anos)';
+      return '';
+    }
 
     function extractTokenFromString(raw) {
       var text = String(raw || '').trim();
@@ -1818,74 +1823,114 @@
       updateResponseMode();
     }
 
-    function updateFamilyCount() {
-      var count = guestsList.querySelectorAll('.guest-row').length;
-      var max = getMaxAllowedGuests();
-      byId('family-count').textContent = count + ' de ' + max + (max === 1 ? ' senha preenchida' : ' senhas preenchidas');
-      var reachedLimit = count >= max;
-      byId('add-guest-btn').disabled = reachedLimit;
-      byId('extra-seat-note').hidden = !reachedLimit;
+    function countFilledGuests() {
+      var filled = 0;
+      Array.from(guestsList.querySelectorAll('.guest-row')).forEach(function (row) {
+        var inp = row.querySelector('input[name="personName"]');
+        if (inp && inp.value.trim()) filled += 1;
+      });
+      return filled;
     }
 
-    function addGuestRow(initialName, focusNew) {
+    function syncRowRequirements() {
+      var isYes = getSelectedResponse() === 'yes';
+      Array.from(guestsList.querySelectorAll('.guest-row')).forEach(function (row) {
+        var nameInput = row.querySelector('input[name="personName"]');
+        var ageSelect = row.querySelector('select[name="personAgeGroup"]');
+        var hasName = Boolean(nameInput && nameInput.value.trim());
+        if (nameInput) nameInput.required = false;
+        if (ageSelect) ageSelect.required = isYes && hasName;
+      });
+    }
+
+    function updateFamilyCount() {
+      var max = getMaxAllowedGuests();
+      var filledCount = countFilledGuests();
+      var rowCount = guestsList.querySelectorAll('.guest-row').length;
+      byId('family-count').textContent = filledCount + ' de ' + max + (max === 1 ? ' lugar preenchido' : ' lugares preenchidos');
+      var fixedSlotsMode = Boolean(currentInvite && currentInvite.maxGuests);
+      byId('add-guest-btn').hidden = fixedSlotsMode;
+      byId('add-guest-btn').disabled = rowCount >= max;
+
+      var partialNote = byId('rsvp-partial-note');
+      if (partialNote) {
+        if (filledCount === 0) {
+          partialNote.hidden = false;
+          partialNote.textContent = 'Preencha ao menos o nome de quem vai. Se enviar sem preencher abaixo, confirmaremos apenas o responsável acima.';
+        } else if (fixedSlotsMode && filledCount < max) {
+          partialNote.hidden = false;
+          partialNote.textContent = 'Você preencheu ' + filledCount + ' de ' + max + ' lugares reservados. Os espaços em branco ficarão livres sem impedir o envio.';
+        } else {
+          partialNote.hidden = true;
+        }
+      }
+
+      byId('extra-seat-note').hidden = !(fixedSlotsMode || rowCount >= max);
+      syncRowRequirements();
+    }
+
+    function addGuestRow(initialGuest, focusNew) {
       var max = getMaxAllowedGuests();
       var currentCount = guestsList.querySelectorAll('.guest-row').length;
       if (currentCount >= max) return;
       guestCounter += 1;
       var idx = guestCounter;
+      var slotNum = currentCount + 1;
+      var initialName = typeof initialGuest === 'string' ? initialGuest : (initialGuest && initialGuest.name) || '';
+      var initialAgeGroup = initialGuest && typeof initialGuest === 'object' ? (initialGuest.ageGroup || '') : '';
+
       var row = document.createElement('div');
-      row.className = 'guest-row' + (rsvpConfig.askAge ? ' has-age' : '');
+      row.className = 'guest-row';
+
+      var slotHead = document.createElement('div');
+      slotHead.className = 'guest-slot-head';
+      var slotTitle = document.createElement('p');
+      slotTitle.className = 'guest-slot-title';
+      slotTitle.textContent = 'Convidado ' + slotNum;
+      slotHead.appendChild(slotTitle);
+      row.appendChild(slotHead);
+
+      var fields = document.createElement('div');
+      fields.className = 'guest-fields';
 
       var nameWrap = document.createElement('div');
       var nameLabel = document.createElement('label');
       nameLabel.setAttribute('for', 'person-name-' + idx);
-      nameLabel.textContent = currentCount === 0 ? 'Pessoa 1 (ex.: você)' : 'Pessoa ' + (currentCount + 1);
+      nameLabel.textContent = 'Nome completo';
       var nameInput = document.createElement('input');
       nameInput.id = 'person-name-' + idx;
       nameInput.name = 'personName';
       nameInput.maxLength = 120;
-      nameInput.required = getSelectedResponse() === 'yes';
-      nameInput.placeholder = 'Nome completo de quem estará presente';
+      nameInput.placeholder = 'Nome do convidado';
       if (initialName) nameInput.value = initialName;
       nameWrap.append(nameLabel, nameInput);
-      row.appendChild(nameWrap);
 
-      if (rsvpConfig.askAge) {
-        var ageWrap = document.createElement('div');
-        var ageLabel = document.createElement('label');
-        ageLabel.setAttribute('for', 'person-age-' + idx);
-        ageLabel.textContent = 'Idade';
-        var ageInput = document.createElement('input');
-        ageInput.id = 'person-age-' + idx;
-        ageInput.name = 'personAge';
-        ageInput.type = 'number';
-        ageInput.inputMode = 'numeric';
-        ageInput.min = '0';
-        ageInput.max = '120';
-        ageInput.placeholder = 'Opcional';
-        ageWrap.append(ageLabel, ageInput);
-        row.appendChild(ageWrap);
-      }
-
-      var removeBtn = document.createElement('button');
-      removeBtn.type = 'button';
-      removeBtn.className = 'guest-remove';
-      removeBtn.textContent = 'Remover';
-      removeBtn.addEventListener('click', function () {
-        if (guestsList.querySelectorAll('.guest-row').length <= 1) {
-          nameInput.value = '';
-          nameInput.focus();
-          return;
-        }
-        row.remove();
-        Array.from(guestsList.querySelectorAll('.guest-row')).forEach(function (r, i) {
-          var lbl = r.querySelector('label');
-          if (lbl) lbl.textContent = i === 0 ? 'Pessoa 1 (ex.: você)' : 'Pessoa ' + (i + 1);
-        });
-        updateFamilyCount();
-        byId('add-guest-btn').focus();
+      var ageWrap = document.createElement('div');
+      var ageLabel = document.createElement('label');
+      ageLabel.setAttribute('for', 'person-age-group-' + idx);
+      ageLabel.textContent = 'Faixa de idade';
+      var ageSelect = document.createElement('select');
+      ageSelect.id = 'person-age-group-' + idx;
+      ageSelect.name = 'personAgeGroup';
+      [
+        ['', 'Selecione'],
+        ['adulto', 'Adulto (13+ anos)'],
+        ['crianca', 'Criança (6 a 12 anos)'],
+        ['isento', 'Criança pequena (0 a 5 anos)']
+      ].forEach(function (pair) {
+        var opt = document.createElement('option');
+        opt.value = pair[0];
+        opt.textContent = pair[1];
+        if (initialAgeGroup === pair[0]) opt.selected = true;
+        ageSelect.appendChild(opt);
       });
-      row.appendChild(removeBtn);
+      ageWrap.append(ageLabel, ageSelect);
+
+      nameInput.addEventListener('input', updateFamilyCount);
+      ageSelect.addEventListener('change', updateFamilyCount);
+
+      fields.append(nameWrap, ageWrap);
+      row.appendChild(fields);
 
       guestsList.appendChild(row);
       updateFamilyCount();
@@ -1897,8 +1942,15 @@
       updateFamilyCount();
     }
 
-    function ensureAtLeastOneGuestRow() {
-      if (guestsList.querySelectorAll('.guest-row').length === 0) {
+    function ensureGuestSlotsReady() {
+      var existingRows = guestsList.querySelectorAll('.guest-row').length;
+      if (currentInvite && currentInvite.maxGuests) {
+        var target = getMaxAllowedGuests();
+        while (existingRows < target) {
+          addGuestRow('', false);
+          existingRows += 1;
+        }
+      } else if (existingRows === 0) {
         addGuestRow(byId('guest-name').value.trim(), false);
       }
     }
@@ -1907,6 +1959,7 @@
       var firstInput = guestsList.querySelector('.guest-row input[name="personName"]');
       if (firstInput && !firstInput.value.trim() && this.value.trim()) {
         firstInput.value = this.value.trim();
+        firstInput.dispatchEvent(new Event('input'));
       }
     });
 
@@ -1916,9 +1969,9 @@
       byId('companions-field').hidden = !isYes;
       byId('absence-note-field').hidden = isYes;
       byId('guest-phone').required = isYes;
-      byId('guest-phone-label').textContent = isYes ? 'WhatsApp ou telefone' : 'Telefone para contato (opcional)';
-      if (isYes) ensureAtLeastOneGuestRow();
-      all('#rsvp-guests-list input, #rsvp-guests-list button, #add-guest-btn').forEach(function (el) {
+      byId('guest-phone-label').textContent = isYes ? 'WhatsApp para contato' : 'WhatsApp para contato (opcional)';
+      if (isYes) ensureGuestSlotsReady();
+      all('#rsvp-guests-list input, #rsvp-guests-list select, #rsvp-guests-list button, #add-guest-btn').forEach(function (el) {
         el.disabled = !isYes;
       });
       if (isYes) updateFamilyCount();
@@ -1938,11 +1991,11 @@
       var list = [];
       Array.from(guestsList.querySelectorAll('.guest-row')).forEach(function (row) {
         var nameEl = row.querySelector('input[name="personName"]');
-        var ageEl = row.querySelector('input[name="personAge"]');
+        var ageGroupEl = row.querySelector('select[name="personAgeGroup"]');
         var clean = String((nameEl && nameEl.value) || '').trim();
         if (clean) {
           var item = { name: clean };
-          if (ageEl && ageEl.value !== '') item.age = Number(ageEl.value);
+          if (ageGroupEl && ageGroupEl.value) item.ageGroup = ageGroupEl.value;
           list.push(item);
         }
       });
@@ -1976,7 +2029,12 @@
         ul.className = 'review-list';
         guests.forEach(function (g) {
           var li = document.createElement('li');
-          li.textContent = typeof g === 'string' ? g : g.name;
+          if (typeof g === 'string') {
+            li.textContent = g;
+          } else {
+            var agLabel = formatAgeGroupText(g.ageGroup);
+            li.textContent = agLabel ? g.name + ' · ' + agLabel : g.name;
+          }
           ul.appendChild(li);
         });
         box.appendChild(ul);
@@ -1998,7 +2056,7 @@
       var phoneMaskText = data.phoneMask || maskPhone(data.phone || '');
       if (phoneMaskText && phoneMaskText !== 'não informado') {
         var pPhone = document.createElement('p');
-        pPhone.textContent = 'Telefone: ' + phoneMaskText;
+        pPhone.textContent = 'WhatsApp: ' + phoneMaskText;
         box.appendChild(pPhone);
       }
       return box;
@@ -2012,15 +2070,20 @@
 
       if (currentInvite) {
         var max = getMaxAllowedGuests();
-        var senhasTxt = max + (max === 1 ? ' senha disponível' : ' senhas disponíveis');
+        var guestsCopy = max === 1
+          ? 'Convite individual (1 lugar reservado)'
+          : 'Até ' + max + ' lugares reservados com carinho';
+        var bannerCopy = max === 1
+          ? 'Preparamos este convite especialmente para você.'
+          : 'Preparamos este convite com muito carinho para até ' + max + ' pessoas.';
         metaEl.hidden = false;
-        metaEl.textContent = (currentInvite.familyName ? currentInvite.familyName + ' · ' : '') + senhasTxt;
+        metaEl.textContent = (currentInvite.familyName ? currentInvite.familyName + ' · ' : '') + guestsCopy;
         badgeEl.hidden = false;
         byId('invite-badge-family').textContent = currentInvite.familyName ? 'Convite para ' + currentInvite.familyName : 'Convite especial';
-        byId('invite-badge-limit').textContent = '· ' + senhasTxt;
+        byId('invite-badge-limit').textContent = '· ' + (max === 1 ? '1 lugar reservado' : 'Até ' + max + ' lugares');
         if (seatsBanner) {
           seatsBanner.hidden = false;
-          seatsBanner.textContent = 'Você tem ' + senhasTxt + ' neste convite.';
+          seatsBanner.textContent = bannerCopy;
         }
 
         if (currentInvite.respondentName) {
@@ -2044,7 +2107,7 @@
       clearGuests();
       if (!invite) {
         setSelectedResponse('yes');
-        ensureAtLeastOneGuestRow();
+        ensureGuestSlotsReady();
         return;
       }
       byId('guest-name').value = invite.respondentName || '';
@@ -2057,9 +2120,10 @@
         var list = Array.isArray(invite.confirmedGuests) && invite.confirmedGuests.length
           ? invite.confirmedGuests
           : [{ name: invite.respondentName || '' }];
-        list.forEach(function (g) {
-          addGuestRow(typeof g === 'string' ? g : g.name, false);
-        });
+        var targetSlots = Math.max(list.length, Number(invite.maxGuests) || list.length);
+        for (var i = 0; i < targetSlots; i++) {
+          addGuestRow(i < list.length ? list[i] : '', false);
+        }
         setSelectedResponse('yes');
       }
       updateFamilyCount();
@@ -2146,7 +2210,7 @@
       if (resp === 'yes' || phone.length > 0) {
         if (phone.length < 8 || digits < 8) {
           status.className = 'form-status is-error';
-          status.textContent = 'Informe um WhatsApp ou telefone válido com DDD.';
+          status.textContent = 'Informe um WhatsApp válido com DDD.';
           byId('guest-phone').focus();
           return;
         }
@@ -2214,9 +2278,13 @@
         if (currentInvite && currentInvite.familyName) lines.push('Convite: ' + currentInvite.familyName + ' (' + getMaxAllowedGuests() + ' senha(s))');
         else lines.push('Senhas disponíveis: ' + getMaxAllowedGuests());
         lines.push('Responsável: ' + payload.name);
-        if (payload.phone) lines.push('Telefone: ' + payload.phone);
+        if (payload.phone) lines.push('WhatsApp: ' + payload.phone);
         if (payload.response === 'yes') {
-          var names = (payload.guests || []).map(function (g, i) { return (i + 1) + '. ' + (typeof g === 'string' ? g : g.name); });
+          var names = (payload.guests || []).map(function (g, i) {
+            if (typeof g === 'string') return (i + 1) + '. ' + g;
+            var agTxt = formatAgeGroupText(g.ageGroup);
+            return (i + 1) + '. ' + g.name + (agTxt ? ' (' + agTxt + ')' : '');
+          });
           lines.push('Presença: Sim (' + names.length + ' de ' + getMaxAllowedGuests() + ' senha(s)):');
           lines.push(names.join('\n'));
         } else {
@@ -2322,6 +2390,13 @@
       closeDialog(byId('rsvp-dialog'));
       openCalendarModal(this);
     });
+    if (byId('rsvp-open-gifts')) {
+      byId('rsvp-open-gifts').addEventListener('click', function () {
+        closeDialog(byId('rsvp-dialog'));
+        var giftsEl = byId('presentes');
+        if (giftsEl) giftsEl.scrollIntoView({ behavior: reduced.matches ? 'auto' : 'smooth' });
+      });
+    }
     byId('rsvp-existing-calendar').addEventListener('click', function () {
       closeDialog(byId('rsvp-dialog'));
       openCalendarModal(this);

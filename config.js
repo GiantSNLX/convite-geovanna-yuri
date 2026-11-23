@@ -31,7 +31,7 @@ window.WEDDING_CONFIG = {
     whatsapp: '5592984849557',
     email: 'casamento@yuritanaka.com.br',
     deadline: '',
-    askAge: false,
+    askAge: true,
     requireInviteLink: true,
     allowCompanions: true
   },

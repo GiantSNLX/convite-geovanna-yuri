@@ -113,6 +113,18 @@
     return 'Sem resposta';
   }
 
+  function formatGuestAgeLabel(g) {
+    if (!g || typeof g === 'string') return g || '';
+    var tag = g.ageGroup === 'adulto'
+      ? 'Adulto 13+'
+      : g.ageGroup === 'crianca'
+        ? 'Criança 6–12'
+        : g.ageGroup === 'isento'
+          ? '0–5 anos'
+          : (g.age != null ? g.age + ' anos' : '');
+    return tag ? g.name + ' (' + tag + ')' : g.name;
+  }
+
   function renderInvitesSheet(sheetContainer, filtered, emptyMessage) {
     sheetContainer.innerHTML = '';
     if (!filtered.length) {
@@ -127,7 +139,7 @@
     table.className = 'invites-table';
     var thead = document.createElement('thead');
     var hr = document.createElement('tr');
-    ['Família / Grupo', 'Chave', 'Senhas', 'Situação', 'Confirmados', 'Telefone', 'Ações'].forEach(function (label) {
+    ['Família / Grupo', 'Chave', 'Senhas', 'Situação', 'Confirmados', 'WhatsApp', 'Ações'].forEach(function (label) {
       var th = document.createElement('th');
       th.textContent = label;
       hr.appendChild(th);
@@ -168,7 +180,7 @@
       var tdNames = document.createElement('td');
       tdNames.textContent =
         inv.status === 'yes' && inv.confirmedGuests && inv.confirmedGuests.length
-          ? inv.confirmedGuests.map(function (g) { return g.name; }).join(', ')
+          ? inv.confirmedGuests.map(formatGuestAgeLabel).join(', ')
           : inv.status === 'no' && inv.respondentName
             ? inv.respondentName + ' (ausente)'
             : '—';
@@ -301,8 +313,8 @@
         namesLine.className = 'invite-meta-line';
         namesLine.textContent =
           'Confirmados: ' +
-          inv.confirmedGuests.map(function (g) { return g.name; }).join(', ') +
-          (inv.phone ? ' · Tel: ' + inv.phone : '');
+          inv.confirmedGuests.map(formatGuestAgeLabel).join(', ') +
+          (inv.phone ? ' · WhatsApp: ' + inv.phone : '');
         info.appendChild(namesLine);
       } else if (inv.status === 'no') {
         var noLine = document.createElement('p');
@@ -310,7 +322,7 @@
         noLine.textContent =
           'Responsável: ' +
           (inv.respondentName || 'Não informado') +
-          (inv.phone ? ' · Tel: ' + inv.phone : '') +
+          (inv.phone ? ' · WhatsApp: ' + inv.phone : '') +
           (inv.absenceNote ? ' · Obs: “' + inv.absenceNote + '”' : '');
         info.appendChild(noLine);
       }
@@ -492,7 +504,7 @@
     byId('edit-invite-status').value = inv.status;
     byId('edit-respondent-name').value = inv.respondentName || '';
     byId('edit-respondent-phone').value = inv.phone || '';
-    byId('edit-confirmed-guests').value = (inv.confirmedGuests || []).map(function (g) { return g.name; }).join('\n');
+    byId('edit-confirmed-guests').value = (inv.confirmedGuests || []).map(formatGuestAgeLabel).join('\n');
     byId('edit-absence-note').value = inv.absenceNote || '';
     byId('admin-edit-status').textContent = '';
 
@@ -530,7 +542,14 @@
     var guestsLines = byId('edit-confirmed-guests')
       .value.split(/\r?\n/)
       .map(function (s) { return s.trim(); })
-      .filter(Boolean);
+      .filter(Boolean)
+      .map(function (line) {
+        var m = line.match(/^(.*?)\s*\((Adulto[^)]*|Crian[çc]a[^)]*|0[–-]5[^)]*)\)\s*$/i);
+        if (!m) return { name: line };
+        var tag = m[2].toLowerCase();
+        var ag = tag.indexOf('adulto') !== -1 ? 'adulto' : tag.indexOf('0') !== -1 ? 'isento' : 'crianca';
+        return { name: m[1].trim(), ageGroup: ag };
+      });
     try {
       var res = await api('/api/admin/invites/' + id, {
         method: 'PATCH',
