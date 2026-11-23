@@ -579,7 +579,7 @@
       if (!instant) byId('invitation').focus({ preventScroll: true });
       if (global.gsap && !reduced.matches && !instant) {
         global.gsap.fromTo('.hero-copy', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, clearProps: 'transform,opacity' });
-        global.gsap.fromTo('.hero-emblem', { scale: 0.82, opacity: 0, rotate: -4 }, { scale: 1, opacity: 1, rotate: 0, duration: 0.95, ease: 'power3.out', clearProps: 'transform,opacity,rotate' });
+        global.gsap.fromTo('.hero-emblem', { scale: 0.9, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.9, ease: 'power3.out', clearProps: 'transform,opacity' });
       }
       if (!reactBitsMounted) {
         reactBitsMounted = true;
