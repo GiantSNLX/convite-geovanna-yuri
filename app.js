@@ -1249,7 +1249,13 @@
     });
 
     var apiBase = String((config.guestbook && config.guestbook.apiBase) || '').replace(/\/$/, '');
+    var isStaticPages = !apiBase && /github\.io$/i.test(global.location.hostname);
     async function request(path, options) {
+      if (isStaticPages) {
+        var staticErr = new Error('Nesta prévia estática do GitHub Pages, o envio direto fica ativo com a API conectada ou pelo WhatsApp (92) 98484-9557.');
+        staticErr.isStaticPages = true;
+        throw staticErr;
+      }
       var response = await fetch(
         apiBase + path,
         Object.assign({ headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(15000) }, options)
@@ -1319,9 +1325,14 @@
         byId('guestbook-status').textContent = seen.size
           ? 'Recados cheios de carinho para a nossa história.'
           : 'Ainda não há recados por aqui. Que tal deixar o primeiro?';
-      } catch (_) {
-        byId('guestbook-status').textContent = 'Não conseguimos carregar o mural agora.';
-        byId('guestbook-retry').hidden = false;
+      } catch (err) {
+        if (err && err.isStaticPages) {
+          byId('guestbook-status').textContent = 'Ainda não há recados por aqui. Que tal deixar o primeiro?';
+          byId('guestbook-retry').hidden = true;
+        } else {
+          byId('guestbook-status').textContent = 'Não conseguimos carregar o mural agora.';
+          byId('guestbook-retry').hidden = false;
+        }
       } finally {
         loading = false;
       }

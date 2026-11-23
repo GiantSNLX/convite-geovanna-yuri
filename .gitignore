@@ -4,6 +4,7 @@ node_modules/
 .tools/
 tests/artifacts/
 *.log
+*.sqlite*
 .env
 .env.*
 .DS_Store

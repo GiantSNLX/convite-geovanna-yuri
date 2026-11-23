@@ -41,6 +41,6 @@ window.WEDDING_CONFIG = {
     apiBase: ''
   },
   site: {
-    url: ''
+    url: 'https://giantsnlx.github.io/convite-geovanna-yuri/'
   }
 };
