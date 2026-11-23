@@ -13,7 +13,7 @@
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
   <link rel="preload" as="image" href="./assets/art/monograma-geovanna-yuri.png">
   <link rel="stylesheet" href="./assets/fonts/minimal/fonts.css"><link rel="stylesheet" href="./styles.css">
-  <script src="./assets/vendor/gsap/gsap.min.js" defer></script><script src="./experience.js" defer></script><script src="./config.js" defer></script><script src="./app.js" defer></script>
+  <script src="./assets/vendor/gsap/gsap.min.js" defer></script><script src="./experience.js" defer></script><script src="./config.js" defer></script><script src="./qr.js" defer></script><script src="./app.js" defer></script>
 </head>
 <body class="is-sealed" data-design="minimalista-interativa" data-edition="floral-v3">
   <section class="envelope-scene" id="envelope-scene" aria-labelledby="cover-heading">
@@ -243,6 +243,10 @@
         <div id="guestbook-list" class="guestbook-list" aria-label="Mural público de recados" data-reveal style="--ac-delay:200ms"></div>
         <div class="mural-bottom" data-reveal style="--ac-delay:240ms">
           <p id="guestbook-status" role="status" aria-live="polite">Carregando os recados…</p>
+          <div class="mural-nav">
+            <button id="guestbook-prev" class="icon-button mural-arrow" type="button" aria-label="Recados anteriores" hidden><img class="icon" src="./assets/icons/arrow-right.svg" alt=""></button>
+            <button id="guestbook-next" class="icon-button mural-arrow" type="button" aria-label="Próximos recados" hidden><img class="icon" src="./assets/icons/arrow-right.svg" alt=""></button>
+          </div>
           <button id="guestbook-retry" class="text-button" type="button" hidden>Tentar novamente</button>
           <button id="guestbook-more" class="text-button" type="button" hidden>Mais recados <img class="icon" src="./assets/icons/arrow-right.svg" alt=""></button>
         </div>
@@ -287,7 +291,7 @@
         <div class="closing-links" data-reveal style="--ac-delay:250ms">
           <button id="replay-envelope" class="text-button" type="button">Abrir a carta novamente</button>
           <span aria-hidden="true">·</span>
-          <button id="share-invitation" class="text-button" type="button"><img class="icon" src="./assets/icons/share-2.svg" alt=""> Compartilhar convite</button>
+          <button id="share-invitation" class="text-button" type="button"><img class="icon" src="./assets/icons/heart.svg" alt=""> Compartilhar nossa alegria</button>
         </div>
       </div>
 
@@ -478,13 +482,36 @@
     <div class="dialog-header"><p class="eyebrow">PARA O NOSSO NOVO COMEÇO</p><button class="icon-button" type="button" data-close-dialog aria-label="Fechar Pix"><img class="icon" src="./assets/icons/x.svg" alt=""></button></div>
     <div class="dialog-body">
       <h2 id="pix-heading">Um carinho<br><em>em Pix.</em></h2>
-      <p>Obrigada por fazer parte dos nossos sonhos.</p>
+      <p>Obrigado por fazer parte dos nossos sonhos.</p>
+      <div id="pix-qr-card" class="pix-qr-card" hidden>
+        <div id="pix-qr-box" class="pix-qr-box"></div>
+        <span class="pix-qr-hint">Aponte a câmera no app do seu banco</span>
+      </div>
+      <p id="pix-recipient" class="pix-recipient" hidden></p>
       <label for="pix-key">Nossa chave Pix</label>
       <input id="pix-key" class="pix-key" readonly spellcheck="false" aria-describedby="pix-instructions">
-      <p id="pix-recipient" class="pix-recipient" hidden></p>
-      <p id="pix-instructions" class="fine-print">Use a opção de pagamento por chave Pix no aplicativo do seu banco.</p>
-      <button class="button button-full" id="copy-pix" type="button"><img class="icon" src="./assets/icons/copy.svg" alt=""> Copiar chave Pix</button>
+      <p id="pix-instructions" class="fine-print">Escaneie o QR Code acima ou copie a chave / Pix Copia e Cola no aplicativo do seu banco.</p>
+      <div class="dialog-actions-stack">
+        <button class="button button-full" id="copy-pix" type="button"><img class="icon" src="./assets/icons/copy.svg" alt=""> Copiar chave Pix</button>
+        <button class="button button-outline button-full" id="copy-pix-code" type="button"><img class="icon" src="./assets/icons/qr-code.svg" alt=""> Copiar Pix Copia e Cola</button>
+      </div>
       <p class="form-status" data-pix-status role="status" aria-live="polite"></p>
+    </div>
+  </dialog>
+
+  <dialog id="keepsake-dialog" aria-labelledby="keepsake-heading">
+    <div class="dialog-header"><p class="eyebrow">SAVE THE DATE · CELEBRAR JUNTOS</p><button class="icon-button" type="button" data-close-dialog aria-label="Fechar lembrança"><img class="icon" src="./assets/icons/x.svg" alt=""></button></div>
+    <div class="dialog-body">
+      <h2 id="keepsake-heading">Compartilhe essa <em>alegria.</em></h2>
+      <p>Baixe a arte especial do nosso grande dia para postar nos Stories ou enviar aos familiares, sem expor seu convite individual.</p>
+      <div class="keepsake-frame">
+        <canvas id="keepsake-canvas" width="1080" height="1350" aria-label="Arte Save the Date Geovanna e Yuri"></canvas>
+      </div>
+      <div class="dialog-actions-stack">
+        <button class="button button-full" id="native-share-keepsake" type="button"><img class="icon" src="./assets/icons/share-2.svg" alt=""> Compartilhar arte</button>
+        <button class="button button-outline button-full" id="download-keepsake" type="button"><img class="icon" src="./assets/icons/heart.svg" alt=""> Baixar imagem (PNG)</button>
+      </div>
+      <p id="keepsake-status" class="form-status" role="status" aria-live="polite"></p>
     </div>
   </dialog>
 

@@ -27,7 +27,7 @@ jobs:
       - name: Prepare static site artifact
         run: |
           mkdir -p _site
-          cp index.html styles.css app.js config.js experience.js casamento-yuri-geovanna.ics admin.html admin.js _site/
+          cp index.html styles.css app.js config.js experience.js qr.js casamento-yuri-geovanna.ics admin.html admin.js _site/
           cp -r assets _site/assets
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v3

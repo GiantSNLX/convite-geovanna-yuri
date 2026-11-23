@@ -25,7 +25,7 @@ window.WEDDING_CONFIG = {
     amazonUrl: 'https://www.amazon.com.br/hz/wishlist/ls/1COYFBY0ZVLV5?ref_=wl_share',
     registryUrl: 'https://www.bemol.com.br/lp/geovanna-yuri',
     pixKey: 'b322cbd5-a624-4fcc-b2a0-19cf3da563b4',
-    pixRecipient: 'Geovanna de Souza e Souza / Yuri Menezes Tanaka'
+    pixRecipient: 'Yuri Menezes Tanaka'
   },
   rsvp: {
     whatsapp: '5592984849557',

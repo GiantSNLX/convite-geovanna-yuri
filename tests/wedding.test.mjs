@@ -13,6 +13,7 @@ import { buildCsv, escapeCsvCell } from '../scripts/csv.mjs';
 const require = createRequire(import.meta.url);
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const experience = require(path.join(projectRoot, 'experience.js'));
+const WeddingQR = require(path.join(projectRoot, 'qr.js'));
 
 function loadWeddingUtils() {
   const sandbox = { window: {}, URLSearchParams, Intl, Date, Math, Number, String, Error };
@@ -185,11 +186,34 @@ test('GuestbookStore handles message moderation, family invites, seat limits, up
     assert.equal(overview.confirmedPeople, 3);
     assert.equal(overview.pendingInvites, 0);
 
+    // Mensagem destacada aparece antes das mensagens mais recentes
+    const second = store.add({
+      name: 'Maria',
+      message: 'Deus abençoe muito!',
+      requestId: '11111111-1111-4111-8111-111111111112'
+    }, { autoApprove: true });
+    store.setMessageFeatured(first.message.id, true);
+    const ordered = store.list().messages;
+    assert.equal(ordered[0].id, first.message.id);
+    assert.equal(ordered[1].id, second.message.id);
+
+    assert.equal(store.remove(second.message.id), 1);
     assert.equal(store.remove(first.message.id), 1);
     assert.equal(store.export().length, 0);
   } finally {
     store.close();
   }
+});
+
+test('WeddingQR builds valid EMV Pix BR Code and renders crisp SVG matrix', () => {
+  const payload = WeddingQR.buildPixBrCode({
+    key: 'b322cbd5-a624-4fcc-b2a0-19cf3da563b4',
+    merchantName: 'Yuri Menezes Tanaka',
+    merchantCity: 'Manaus'
+  });
+  assert.match(payload, /^00020126580014br\.gov\.bcb\.pix0136b322cbd5-a624-4fcc-b2a0-19cf3da563b4.*5919Yuri Menezes Tanaka6006Manaus.*6304[0-9A-F]{4}$/);
+  const svg = WeddingQR.toSvg(payload);
+  assert.match(svg, /^<svg[^>]+viewBox="0 0 \d+ \d+"[^>]*>.*<path d="M/);
 });
 
 test('CSV export helper neutralizes formula prefixes', () => {

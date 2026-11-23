@@ -243,6 +243,9 @@ export function createGuestbookStore(filename) {
   if (!msgColumns.has('status')) {
     database.exec("ALTER TABLE messages ADD COLUMN status TEXT NOT NULL DEFAULT 'pending';");
   }
+  if (!msgColumns.has('featured')) {
+    database.exec('ALTER TABLE messages ADD COLUMN featured INTEGER NOT NULL DEFAULT 0;');
+  }
 
   const rsvpColumns = new Set(database.prepare('PRAGMA table_info(rsvps)').all().map((col) => col.name));
   const rsvpMigrations = [
@@ -259,12 +262,12 @@ export function createGuestbookStore(filename) {
     }
   }
 
-  const fields = 'id, name, message, status, created_at AS createdAt';
+  const fields = 'id, name, message, status, featured, created_at AS createdAt';
   const byRequest = database.prepare(`SELECT ${fields} FROM messages WHERE request_id = ?`);
   const byIdStmt = database.prepare(`SELECT ${fields} FROM messages WHERE id = ?`);
-  const insert = database.prepare('INSERT INTO messages (request_id,name,message,status,created_at) VALUES (?,?,?,?,?)');
-  const latestApproved = database.prepare(`SELECT ${fields} FROM messages WHERE status = 'approved' ORDER BY id DESC LIMIT 13`);
-  const olderApproved = database.prepare(`SELECT ${fields} FROM messages WHERE status = 'approved' AND id < ? ORDER BY id DESC LIMIT 13`);
+  const insert = database.prepare('INSERT INTO messages (request_id,name,message,status,featured,created_at) VALUES (?,?,?,?,0,?)');
+  const latestApproved = database.prepare(`SELECT ${fields} FROM messages WHERE status = 'approved' ORDER BY featured DESC, id DESC LIMIT 13`);
+  const olderApproved = database.prepare(`SELECT ${fields} FROM messages WHERE status = 'approved' AND (featured < ? OR (featured = ? AND id < ?)) ORDER BY featured DESC, id DESC LIMIT 13`);
 
   const rsvpFields = 'id, name, age, response, companions, guests_json AS guestsJson, phone, email, invite_token AS inviteToken, absence_note AS absenceNote, created_at AS createdAt';
   const rsvpByRequest = database.prepare(`SELECT ${rsvpFields} FROM rsvps WHERE request_id = ?`);
@@ -535,22 +538,41 @@ export function createGuestbookStore(filename) {
     },
 
     list(before) {
-      if (before !== null && before !== undefined && (!/^\d+$/.test(String(before)) || !Number.isSafeInteger(Number(before)) || Number(before) <= 0)) {
-        const error = new Error('Página inválida.');
-        error.status = 400;
-        throw error;
+      let rows;
+      if (before === null || before === undefined || before === '') {
+        rows = latestApproved.all();
+      } else {
+        const raw = String(before);
+        let feat = 0;
+        let lastId = Number(raw);
+        if (/^[01]:\d+$/.test(raw)) {
+          const parts = raw.split(':');
+          feat = Number(parts[0]);
+          lastId = Number(parts[1]);
+        } else if (!/^\d+$/.test(raw)) {
+          lastId = NaN;
+        }
+        if (!Number.isSafeInteger(lastId) || lastId <= 0) {
+          const error = new Error('Página inválida.');
+          error.status = 400;
+          throw error;
+        }
+        rows = olderApproved.all(feat, feat, lastId);
       }
-      const rows = before ? olderApproved.all(Number(before)) : latestApproved.all();
       const hasMore = rows.length > 12;
       const messages = rows.slice(0, 12);
-      return { messages, nextCursor: hasMore ? String(messages.at(-1).id) : null };
+      const last = messages.at(-1);
+      return {
+        messages,
+        nextCursor: hasMore && last ? `${last.featured ? 1 : 0}:${last.id}` : null
+      };
     },
 
     listAllMessages(statusFilter = '') {
       if (statusFilter && ['pending', 'approved', 'archived'].includes(statusFilter)) {
-        return database.prepare(`SELECT ${fields} FROM messages WHERE status = ? ORDER BY id DESC`).all(statusFilter);
+        return database.prepare(`SELECT ${fields} FROM messages WHERE status = ? ORDER BY featured DESC, id DESC`).all(statusFilter);
       }
-      return database.prepare(`SELECT ${fields} FROM messages ORDER BY id DESC`).all();
+      return database.prepare(`SELECT ${fields} FROM messages ORDER BY featured DESC, id DESC`).all();
     },
 
     setMessageStatus(id, status) {
@@ -558,6 +580,14 @@ export function createGuestbookStore(filename) {
       if (!Number.isSafeInteger(num) || num <= 0) throw new Error('Informe um ID numérico válido.');
       if (!['pending', 'approved', 'archived'].includes(status)) throw new Error('Status inválido.');
       const changes = Number(database.prepare('UPDATE messages SET status = ? WHERE id = ?').run(status, num).changes);
+      return changes ? byIdStmt.get(num) : null;
+    },
+
+    setMessageFeatured(id, featured) {
+      const num = Number(id);
+      if (!Number.isSafeInteger(num) || num <= 0) throw new Error('Informe um ID numérico válido.');
+      const flag = featured ? 1 : 0;
+      const changes = Number(database.prepare('UPDATE messages SET featured = ? WHERE id = ?').run(flag, num).changes);
       return changes ? byIdStmt.get(num) : null;
     },
 
@@ -792,7 +822,7 @@ export function createGuestbookApi(store, options = {}) {
         }
       }
 
-      const msgMatch = pathname.match(/^\/api\/admin\/messages\/(\d+)(?:\/(approve|archive))?$/);
+      const msgMatch = pathname.match(/^\/api\/admin\/messages\/(\d+)(?:\/(approve|archive|feature))?$/);
       if (msgMatch) {
         const msgId = Number(msgMatch[1]);
         const action = msgMatch[2];
@@ -812,6 +842,20 @@ export function createGuestbookApi(store, options = {}) {
             return true;
           }
           json(200, { message: updated, overview: store.getOverview() });
+          return true;
+        }
+        if (action === 'feature' && request.method === 'POST') {
+          try {
+            const body = await readJsonBody(request, 2048);
+            const updated = store.setMessageFeatured(msgId, Boolean(body.featured));
+            if (!updated) {
+              json(404, { error: 'Recado não encontrado.' });
+              return true;
+            }
+            json(200, { message: updated, overview: store.getOverview() });
+          } catch (error) {
+            json(error.status || 400, { error: error.message });
+          }
           return true;
         }
         if (!action && request.method === 'DELETE') {

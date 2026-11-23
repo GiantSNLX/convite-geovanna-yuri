@@ -449,37 +449,70 @@
         src.stop(now + (opts.dur || 0.4) + 0.05);
       }
 
+      var musicEl = null;
+      var musicFadeTimer = null;
+      var TARGET_MUSIC_VOL = 0.42;
+
+      function ensureMusicEl() {
+        if (musicEl || typeof global.Audio !== 'function') return musicEl;
+        try {
+          musicEl = new global.Audio('./assets/audio/turning-page-violin.mp3');
+          musicEl.loop = true;
+          musicEl.preload = 'none';
+          musicEl.volume = 0;
+        } catch (_) {
+          musicEl = null;
+        }
+        return musicEl;
+      }
+
+      function fadeMusicTo(targetVol, durationMs, pauseOnZero) {
+        if (!musicEl) return;
+        global.clearInterval(musicFadeTimer);
+        var startVol = musicEl.volume;
+        var steps = 16;
+        var stepMs = Math.max(20, Math.round(durationMs / steps));
+        var count = 0;
+        musicFadeTimer = global.setInterval(function () {
+          count += 1;
+          var t = Math.min(1, count / steps);
+          try {
+            musicEl.volume = Math.max(0, Math.min(1, startVol + (targetVol - startVol) * t));
+          } catch (_) {}
+          if (t >= 1) {
+            global.clearInterval(musicFadeTimer);
+            musicFadeTimer = null;
+            if (pauseOnZero && targetVol <= 0.001) {
+              try { musicEl.pause(); } catch (_) {}
+            }
+          }
+        }, stepMs);
+      }
+
       function stopAmbient() {
         if (ambientTimer) {
           global.clearInterval(ambientTimer);
           ambientTimer = null;
         }
-      }
-
-      function playAmbientChord() {
-        if (!enabled || document.hidden) return;
-        var c = ensureCtx(false);
-        if (!c || c.state !== 'running') return;
-        var chord = chords[chordIndex % chords.length];
-        chordIndex += 1;
-        chord.forEach(function (freq, idx) {
-          playTone(c, {
-            freq: freq,
-            type: 'sine',
-            harm: 0.05,
-            gain: 0.015,
-            attack: 1.5,
-            dur: 5.4,
-            delay: idx * 0.16
-          });
-        });
+        if (musicEl && !musicEl.paused) {
+          fadeMusicTo(0, 450, true);
+        }
       }
 
       function startAmbient() {
-        stopAmbient();
-        if (!enabled || !document.body.classList.contains('is-open')) return;
-        playAmbientChord();
-        ambientTimer = global.setInterval(playAmbientChord, 6200);
+        if (!enabled || document.hidden || !document.body.classList.contains('is-open')) return;
+        var el = ensureMusicEl();
+        if (!el) return;
+        try {
+          if (el.paused) {
+            el.volume = 0;
+            var playPromise = el.play();
+            if (playPromise && typeof playPromise.catch === 'function') {
+              playPromise.catch(function () {});
+            }
+          }
+          fadeMusicTo(TARGET_MUSIC_VOL, 2200, false);
+        } catch (_) {}
       }
 
       function syncToggleButtons() {
@@ -1222,8 +1255,39 @@
     if (gifts.amazonUrl) byId('amazon-link').href = gifts.amazonUrl;
     byId('pix-key').value = gifts.pixKey || '';
     if (gifts.pixRecipient) {
-      byId('pix-recipient').textContent = 'Favorecido: ' + gifts.pixRecipient;
+      byId('pix-recipient').textContent = 'Beneficiário: ' + gifts.pixRecipient;
       byId('pix-recipient').hidden = false;
+    }
+    var pixBrCode = '';
+    if (gifts.pixKey && global.WeddingQR) {
+      try {
+        pixBrCode = global.WeddingQR.buildPixBrCode({
+          key: gifts.pixKey,
+          merchantName: gifts.pixRecipient || 'Yuri Menezes Tanaka',
+          merchantCity: 'Manaus'
+        });
+        if (pixBrCode) {
+          byId('pix-qr-box').innerHTML = global.WeddingQR.toSvg(pixBrCode, {
+            margin: 3,
+            color: '#24321e',
+            background: '#fffdf8'
+          });
+          byId('pix-qr-card').hidden = false;
+        }
+      } catch (_) {}
+    }
+    if (byId('copy-pix-code')) {
+      byId('copy-pix-code').hidden = !pixBrCode;
+      byId('copy-pix-code').addEventListener('click', async function () {
+        var status = document.querySelector('[data-pix-status]');
+        if (!pixBrCode) return;
+        var copied = await copy(pixBrCode);
+        if (copied) sound.success();
+        status.className = 'form-status ' + (copied ? 'is-success' : '');
+        status.textContent = copied
+          ? 'Pix Copia e Cola copiado. Cole na opção Pix Copia e Cola do seu banco.'
+          : 'Não foi possível copiar automaticamente. Use a chave Pix acima.';
+      });
     }
     all('[data-open-pix]').forEach(function (button) {
       button.addEventListener('click', function () {
@@ -1308,45 +1372,161 @@
       }
     });
 
-    function getPublicShareUrl() {
-      if (config.site && config.site.url && /^https?:\/\//i.test(config.site.url)) {
-        return config.site.url;
+    var keepsakeRendered = false;
+    function loadAssetImg(src) {
+      return new Promise(function (resolve) {
+        var img = new global.Image();
+        img.onload = function () { resolve(img); };
+        img.onerror = function () { resolve(null); };
+        img.src = src;
+      });
+    }
+
+    async function renderKeepsakeCard() {
+      var canvas = byId('keepsake-canvas');
+      if (!canvas || !canvas.getContext || keepsakeRendered) return;
+      var ctx = canvas.getContext('2d');
+      var W = canvas.width;
+      var H = canvas.height;
+      ctx.fillStyle = '#f8f4ec';
+      ctx.fillRect(0, 0, W, H);
+
+      var grad = ctx.createRadialGradient(W / 2, H * 0.45, 80, W / 2, H * 0.5, W * 0.72);
+      grad.addColorStop(0, '#fffdf9');
+      grad.addColorStop(1, '#efe7d6');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      var imgs = await Promise.all([
+        loadAssetImg('./assets/art/floral-v4.webp'),
+        loadAssetImg('./assets/art/monograma-geovanna-yuri.png')
+      ]);
+      var floral = imgs[0];
+      var monogram = imgs[1];
+
+      if (floral) {
+        ctx.save();
+        ctx.globalAlpha = 0.58;
+        ctx.drawImage(floral, -80, H - 440, 520, 520);
+        ctx.save();
+        ctx.translate(W + 80, -80);
+        ctx.scale(-1, -1);
+        ctx.drawImage(floral, 0, 0, 520, 520);
+        ctx.restore();
+        ctx.restore();
       }
-      try {
-        var u = new URL(global.location.href);
-        u.searchParams.delete('c');
-        u.searchParams.delete('convite');
-        u.searchParams.delete('token');
-        u.searchParams.delete('aberto');
-        u.hash = '';
-        return u.toString();
-      } catch (_) {
-        return global.location.href.split('?')[0].split('#')[0];
+
+      ctx.strokeStyle = 'rgba(166, 130, 60, 0.48)';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(48, 48, W - 96, H - 96);
+
+      if (monogram) {
+        ctx.drawImage(monogram, (W - 360) / 2, 128, 360, 360);
       }
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#a6823c';
+      ctx.font = '600 24px "DM Sans", sans-serif';
+      ctx.fillText('SAVE THE DATE · CELEBRAR JUNTOS', W / 2, 545);
+
+      ctx.fillStyle = '#24321e';
+      ctx.font = '400 96px "Bodoni Moda", Georgia, serif';
+      ctx.fillText('Geovanna', W / 2, 668);
+      ctx.font = 'italic 400 72px "Bodoni Moda", Georgia, serif';
+      ctx.fillStyle = '#a6823c';
+      ctx.fillText('&', W / 2 - 142, 766);
+      ctx.font = '400 96px "Bodoni Moda", Georgia, serif';
+      ctx.fillStyle = '#24321e';
+      ctx.fillText('Yuri', W / 2 + 44, 770);
+
+      ctx.strokeStyle = '#c9b382';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(W / 2 - 90, 835);
+      ctx.lineTo(W / 2 + 90, 835);
+      ctx.stroke();
+
+      ctx.fillStyle = '#24321e';
+      ctx.font = '600 40px "Bodoni Moda", Georgia, serif';
+      ctx.fillText('13 de janeiro de 2027 · às 19h', W / 2, 912);
+
+      ctx.fillStyle = '#5f6755';
+      ctx.font = '500 28px "DM Sans", sans-serif';
+      ctx.fillText('Casa Colonial · Manaus, AM', W / 2, 965);
+
+      ctx.fillStyle = '#405638';
+      ctx.font = 'italic 400 32px "Bodoni Moda", Georgia, serif';
+      ctx.fillText('Contando os dias para celebrar esse sim!', W / 2, 1090);
+
+      ctx.fillStyle = '#a6823c';
+      ctx.font = '600 20px "DM Sans", sans-serif';
+      ctx.fillText('COM AMOR · GEOVANNA & YURI', W / 2, 1215);
+      keepsakeRendered = true;
+    }
+
+    function getKeepsakeBlob() {
+      return new Promise(function (resolve) {
+        var canvas = byId('keepsake-canvas');
+        if (!canvas || !canvas.toBlob) { resolve(null); return; }
+        canvas.toBlob(function (blob) { resolve(blob); }, 'image/png');
+      });
+    }
+
+    function triggerKeepsakeDownload(blob) {
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'geovanna-e-yuri-save-the-date.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      global.setTimeout(function () { URL.revokeObjectURL(url); }, 20000);
     }
 
     byId('share-invitation').addEventListener('click', async function () {
-      var url = getPublicShareUrl();
-      if (!/^https?:\/\//i.test(url)) {
-        toast('O link público estará disponível quando o convite for publicado.');
-        return;
-      }
-      if (global.navigator.share) {
-        try {
-          await global.navigator.share({
-            title: 'Yuri & Geovanna · Nosso casamento',
-            text: 'Um convite para celebrar o nosso sim.',
-            url: url
-          });
-          return;
-        } catch (error) {
-          if (error && error.name === 'AbortError') return;
-        }
-      }
-      var sharedCopy = await copy(url);
-      if (sharedCopy) sound.success();
-      toast(sharedCopy ? 'Link público do convite copiado.' : 'Copie o endereço público na barra do navegador.');
+      byId('keepsake-status').textContent = '';
+      openDialog(byId('keepsake-dialog'), this);
+      await renderKeepsakeCard();
     });
+
+    if (byId('download-keepsake')) {
+      byId('download-keepsake').addEventListener('click', async function () {
+        await renderKeepsakeCard();
+        var blob = await getKeepsakeBlob();
+        if (!blob) return;
+        triggerKeepsakeDownload(blob);
+        sound.success();
+        byId('keepsake-status').className = 'form-status is-success';
+        byId('keepsake-status').textContent = 'Arte salva! Agora você pode postar nos Stories ou enviar aos familiares.';
+      });
+    }
+
+    if (byId('native-share-keepsake')) {
+      byId('native-share-keepsake').addEventListener('click', async function () {
+        await renderKeepsakeCard();
+        var blob = await getKeepsakeBlob();
+        if (!blob) return;
+        var file = typeof global.File === 'function'
+          ? new global.File([blob], 'geovanna-e-yuri-save-the-date.png', { type: 'image/png' })
+          : null;
+        if (file && global.navigator.share && (!global.navigator.canShare || global.navigator.canShare({ files: [file] }))) {
+          try {
+            await global.navigator.share({
+              files: [file],
+              title: 'Geovanna & Yuri · Save the Date',
+              text: '13 de janeiro de 2027 · Contando os dias para celebrar esse sim!'
+            });
+            return;
+          } catch (error) {
+            if (error && error.name === 'AbortError') return;
+          }
+        }
+        triggerKeepsakeDownload(blob);
+        sound.success();
+        byId('keepsake-status').className = 'form-status is-success';
+        byId('keepsake-status').textContent = 'Imagem baixada no aparelho! Abra sua galeria para compartilhar nos Stories.';
+      });
+    }
 
     var apiBase = String((config.guestbook && config.guestbook.apiBase) || '').replace(/\/$/, '');
     var isStaticPages = !apiBase && /github\.io$/i.test(global.location.hostname);
@@ -1387,11 +1567,27 @@
     var seen = new Set();
     var cursor = null;
     var loading = false;
+    function syncMuralArrows() {
+      var list = byId('guestbook-list');
+      var prev = byId('guestbook-prev');
+      var next = byId('guestbook-next');
+      if (!list || !prev || !next) return;
+      var hasOverflow = list.scrollWidth > list.clientWidth + 12;
+      prev.hidden = !hasOverflow;
+      next.hidden = !hasOverflow;
+    }
+
     function renderMessage(item, first) {
       if (seen.has(item.id)) return;
       seen.add(item.id);
       var card = document.createElement('article');
-      card.className = 'message-card rb-spotlight';
+      card.className = 'message-card rb-spotlight' + (item.featured ? ' is-featured' : '');
+      if (item.featured) {
+        var featTag = document.createElement('span');
+        featTag.className = 'message-featured-tag';
+        featTag.textContent = 'Em destaque';
+        card.appendChild(featTag);
+      }
       var text = document.createElement('p');
       text.textContent = item.message;
       var footer = document.createElement('footer');
@@ -1409,6 +1605,18 @@
       if (first) byId('guestbook-list').prepend(card);
       else byId('guestbook-list').appendChild(card);
       registerSpotlight(card);
+      syncMuralArrows();
+    }
+    if (byId('guestbook-prev') && byId('guestbook-next')) {
+      byId('guestbook-prev').addEventListener('click', function () {
+        var list = byId('guestbook-list');
+        list.scrollBy({ left: -Math.max(260, Math.round(list.clientWidth * 0.72)), behavior: 'smooth' });
+      });
+      byId('guestbook-next').addEventListener('click', function () {
+        var list = byId('guestbook-list');
+        list.scrollBy({ left: Math.max(260, Math.round(list.clientWidth * 0.72)), behavior: 'smooth' });
+      });
+      global.addEventListener('resize', syncMuralArrows);
     }
     async function loadMessages() {
       if (loading) return;

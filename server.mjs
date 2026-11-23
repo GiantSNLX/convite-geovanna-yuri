@@ -19,6 +19,8 @@ const types = {
   '.webp': 'image/webp',
   '.ico': 'image/x-icon',
   '.ics': 'text/calendar; charset=utf-8',
+  '.mp3': 'audio/mpeg',
+  '.ogg': 'audio/ogg',
   '.woff2': 'font/woff2',
   '.ttf': 'font/ttf',
   '.otf': 'font/otf',
@@ -78,7 +80,7 @@ export function createPreviewServer(root = projectRoot, options = {}) {
       }
       const allowed =
         pathname === '/' ||
-        /^\/(?:index\.html|admin\.html|admin\.js|styles\.css|app\.js|experience\.js|config\.js|gallery\.js|casamento-yuri-geovanna\.ics)$/.test(pathname) ||
+        /^\/(?:index\.html|admin\.html|admin\.js|styles\.css|app\.js|experience\.js|config\.js|gallery\.js|qr\.js|casamento-yuri-geovanna\.ics)$/.test(pathname) ||
         /^\/assets\//.test(pathname);
       if (!allowed || pathname.split('/').some((segment) => segment.startsWith('.'))) {
         finish(404, 'Arquivo não encontrado.');

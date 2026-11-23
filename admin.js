@@ -7,6 +7,7 @@
   var toastTimer;
   var currentFilter = 'pending';
   var currentInviteFilter = 'all';
+  var currentInviteView = 'sheet';
   var inviteSearchQuery = '';
   var cachedInvites = [];
   var cachedMessages = [];
@@ -86,13 +87,160 @@
     byId('metric-pending-messages').textContent = String(overview.pendingMessages || 0);
   }
 
+  async function toggleInviteActive(inv) {
+    var confirmMsg = inv.active
+      ? 'Desativar o link individual de "' + inv.familyName + '"?'
+      : 'Reativar o link individual de "' + inv.familyName + '"?';
+    if (!global.confirm(confirmMsg)) return;
+    try {
+      var res = await api('/api/admin/invites/' + inv.id, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: !inv.active })
+      });
+      renderOverview(res.overview);
+      await refreshDashboard();
+      toast(inv.active ? 'Link desativado.' : 'Link reativado.');
+    } catch (err) {
+      toast(err.message);
+    }
+  }
+
+  function formatInviteStatusShort(inv) {
+    if (!inv.active) return 'Desativado';
+    if (inv.status === 'yes') return 'Confirmado';
+    if (inv.status === 'no') return 'Ausente';
+    return 'Sem resposta';
+  }
+
+  function renderInvitesSheet(sheetContainer, filtered, emptyMessage) {
+    sheetContainer.innerHTML = '';
+    if (!filtered.length) {
+      var p = document.createElement('p');
+      p.style.padding = '16px';
+      p.textContent = emptyMessage;
+      sheetContainer.appendChild(p);
+      return;
+    }
+
+    var table = document.createElement('table');
+    table.className = 'invites-table';
+    var thead = document.createElement('thead');
+    var hr = document.createElement('tr');
+    ['Família / Grupo', 'Chave', 'Senhas', 'Situação', 'Confirmados', 'Telefone', 'Ações'].forEach(function (label) {
+      var th = document.createElement('th');
+      th.textContent = label;
+      hr.appendChild(th);
+    });
+    thead.appendChild(hr);
+
+    var tbody = document.createElement('tbody');
+    var sumConfirmed = 0;
+    var sumMax = 0;
+
+    filtered.forEach(function (inv) {
+      sumConfirmed += inv.status === 'yes' ? Number(inv.confirmedCount || 0) : 0;
+      sumMax += Number(inv.maxGuests || 0);
+
+      var tr = document.createElement('tr');
+      if (!inv.active) tr.className = 'is-inactive';
+
+      var tdFam = document.createElement('td');
+      var famStrong = document.createElement('strong');
+      famStrong.textContent = inv.familyName;
+      tdFam.appendChild(famStrong);
+
+      var tdKey = document.createElement('td');
+      var codeEl = document.createElement('code');
+      codeEl.className = 'key-chip';
+      codeEl.textContent = inv.token;
+      tdKey.appendChild(codeEl);
+
+      var tdSeats = document.createElement('td');
+      tdSeats.textContent = (inv.status === 'yes' ? inv.confirmedCount : 0) + ' / ' + inv.maxGuests;
+
+      var tdStatus = document.createElement('td');
+      var pill = document.createElement('span');
+      pill.className = 'status-pill is-' + inv.status;
+      pill.textContent = formatInviteStatusShort(inv);
+      tdStatus.appendChild(pill);
+
+      var tdNames = document.createElement('td');
+      tdNames.textContent =
+        inv.status === 'yes' && inv.confirmedGuests && inv.confirmedGuests.length
+          ? inv.confirmedGuests.map(function (g) { return g.name; }).join(', ')
+          : inv.status === 'no' && inv.respondentName
+            ? inv.respondentName + ' (ausente)'
+            : '—';
+
+      var tdPhone = document.createElement('td');
+      tdPhone.textContent = inv.phone || '—';
+
+      var tdAct = document.createElement('td');
+      var actWrap = document.createElement('div');
+      actWrap.className = 'sheet-actions';
+
+      var copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.className = 'button button-small';
+      copyBtn.textContent = 'Copiar';
+      copyBtn.title = 'Copiar link individual';
+      copyBtn.addEventListener('click', async function () {
+        var ok = await copyText(buildInviteLink(inv));
+        toast(ok ? 'Link copiado para ' + inv.familyName + '.' : 'Não foi possível copiar automaticamente.');
+      });
+
+      var editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.className = 'button button-outline button-small';
+      editBtn.textContent = 'Editar';
+      editBtn.addEventListener('click', function () {
+        openEditInviteDialog(inv);
+      });
+
+      var toggleBtn = document.createElement('button');
+      toggleBtn.type = 'button';
+      toggleBtn.className = 'button button-danger button-small';
+      toggleBtn.textContent = inv.active ? 'Desativar' : 'Reativar';
+      toggleBtn.addEventListener('click', function () {
+        toggleInviteActive(inv);
+      });
+
+      actWrap.append(copyBtn, editBtn, toggleBtn);
+      tdAct.appendChild(actWrap);
+      tr.append(tdFam, tdKey, tdSeats, tdStatus, tdNames, tdPhone, tdAct);
+      tbody.appendChild(tr);
+    });
+
+    var tfoot = document.createElement('tfoot');
+    var fr = document.createElement('tr');
+    var ftd = document.createElement('td');
+    ftd.colSpan = 7;
+    ftd.textContent =
+      'Exibindo ' + filtered.length + (filtered.length === 1 ? ' convite' : ' convites') +
+      ' · ' + sumConfirmed + ' de ' + sumMax + ' senhas confirmadas';
+    fr.appendChild(ftd);
+    tfoot.appendChild(fr);
+
+    table.append(thead, tbody, tfoot);
+    sheetContainer.appendChild(table);
+  }
+
   function renderInvites() {
     var container = byId('invites-list');
+    var sheetContainer = byId('invites-sheet');
     container.innerHTML = '';
+
+    var isSheet = currentInviteView === 'sheet';
+    if (sheetContainer) sheetContainer.hidden = !isSheet;
+    container.hidden = isSheet;
+
     if (!cachedInvites.length) {
+      var emptyMsg = 'Nenhum convite cadastrado ainda. Crie o primeiro convite de família acima.';
       var empty = document.createElement('p');
-      empty.textContent = 'Nenhum convite cadastrado ainda. Crie o primeiro convite de família acima.';
+      empty.textContent = emptyMsg;
       container.appendChild(empty);
+      if (sheetContainer) renderInvitesSheet(sheetContainer, [], emptyMsg);
       return;
     }
 
@@ -109,9 +257,12 @@
       return hay.indexOf(q) !== -1;
     });
 
+    var noneMsg = 'Nenhum convite encontrado para esse filtro.';
+    if (sheetContainer) renderInvitesSheet(sheetContainer, filtered, noneMsg);
+
     if (!filtered.length) {
       var none = document.createElement('p');
-      none.textContent = 'Nenhum convite encontrado para esse filtro.';
+      none.textContent = noneMsg;
       container.appendChild(none);
       return;
     }
@@ -175,7 +326,7 @@
       var copyBtn = document.createElement('button');
       copyBtn.type = 'button';
       copyBtn.className = 'button button-small';
-      copyBtn.textContent = 'Copiar link individual';
+      copyBtn.textContent = 'Copiar link';
       copyBtn.addEventListener('click', async function () {
         var ok = await copyText(buildInviteLink(inv));
         toast(ok ? 'Link individual copiado para ' + inv.familyName + '.' : 'Não foi possível copiar automaticamente.');
@@ -184,7 +335,7 @@
       var editBtn = document.createElement('button');
       editBtn.type = 'button';
       editBtn.className = 'button button-outline button-small';
-      editBtn.textContent = 'Consultar / Editar';
+      editBtn.textContent = 'Editar';
       editBtn.addEventListener('click', function () {
         openEditInviteDialog(inv);
       });
@@ -192,24 +343,9 @@
       var toggleBtn = document.createElement('button');
       toggleBtn.type = 'button';
       toggleBtn.className = 'button button-danger button-small';
-      toggleBtn.textContent = inv.active ? 'Desativar link' : 'Reativar link';
-      toggleBtn.addEventListener('click', async function () {
-        var confirmMsg = inv.active
-          ? 'Desativar o link individual de "' + inv.familyName + '"?'
-          : 'Reativar o link individual de "' + inv.familyName + '"?';
-        if (!global.confirm(confirmMsg)) return;
-        try {
-          var res = await api('/api/admin/invites/' + inv.id, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ active: !inv.active })
-          });
-          renderOverview(res.overview);
-          await refreshDashboard();
-          toast(inv.active ? 'Link desativado.' : 'Link reativado.');
-        } catch (err) {
-          toast(err.message);
-        }
+      toggleBtn.textContent = inv.active ? 'Desativar' : 'Reativar';
+      toggleBtn.addEventListener('click', function () {
+        toggleInviteActive(inv);
       });
 
       actions.append(copyBtn, editBtn, toggleBtn);
@@ -246,6 +382,12 @@
       pill.className = 'status-pill ' + (m.status === 'approved' ? 'is-yes' : m.status === 'archived' ? 'is-no' : 'is-pending');
       pill.textContent = m.status === 'approved' ? 'Aprovado' : m.status === 'archived' ? 'Arquivado' : 'Pendente';
       head.append(author, pill);
+      if (m.featured) {
+        var featPill = document.createElement('span');
+        featPill.className = 'status-pill is-featured';
+        featPill.textContent = 'Em destaque';
+        head.appendChild(featPill);
+      }
       info.appendChild(head);
 
       var body = document.createElement('p');
@@ -278,6 +420,28 @@
           }
         });
         actions.appendChild(approveBtn);
+      }
+
+      if (m.status === 'approved') {
+        var featBtn = document.createElement('button');
+        featBtn.type = 'button';
+        featBtn.className = 'button button-outline button-small';
+        featBtn.textContent = m.featured ? 'Tirar destaque' : 'Destacar primeiro';
+        featBtn.addEventListener('click', async function () {
+          try {
+            var res = await api('/api/admin/messages/' + m.id + '/feature', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ featured: !m.featured })
+            });
+            renderOverview(res.overview);
+            await refreshDashboard();
+            toast(!m.featured ? 'Recado destacado no topo do mural.' : 'Destaque removido.');
+          } catch (err) {
+            toast(err.message);
+          }
+        });
+        actions.appendChild(featBtn);
       }
 
       if (m.status !== 'archived') {
@@ -422,6 +586,16 @@
       currentInviteFilter = tab.getAttribute('data-invite-filter') || 'all';
       all('[data-invite-filter]').forEach(function (t) {
         t.classList.toggle('is-active', t === tab);
+      });
+      renderInvites();
+    });
+  });
+
+  all('[data-invite-view]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      currentInviteView = btn.getAttribute('data-invite-view') || 'sheet';
+      all('[data-invite-view]').forEach(function (b) {
+        b.classList.toggle('is-active', b === btn);
       });
       renderInvites();
     });
