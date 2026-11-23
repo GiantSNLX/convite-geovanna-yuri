@@ -578,8 +578,8 @@
       else sound.startAmbient();
       if (!instant) byId('invitation').focus({ preventScroll: true });
       if (global.gsap && !reduced.matches && !instant) {
-        global.gsap.fromTo('.hero-copy', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, clearProps: 'transform,opacity' });
-        global.gsap.fromTo('.hero-emblem', { scale: 0.9, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.9, ease: 'power3.out', clearProps: 'transform,opacity' });
+        global.gsap.fromTo('.hero-emblem', { scale: 0.9, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.85, ease: 'power3.out', clearProps: 'transform,opacity' });
+        global.gsap.fromTo('.hero-copy > *:not(.hero-badge-row)', { y: 18, opacity: 0 }, { y: 0, opacity: 1, duration: 0.72, stagger: 0.08, ease: 'power3.out', clearProps: 'transform,opacity' });
       }
       if (!reactBitsMounted) {
         reactBitsMounted = true;
@@ -807,25 +807,31 @@
       });
     }
 
-    // Porte React Bits (AnimatedContent + SpotlightCard)
+    // Porte React Bits (AnimatedContent + SplitText + BlurText + SpotlightCard)
     var spotlightObserverTargets = new Set();
     var registerSpotlight = function () {};
     function mountReactBits() {
       var calm = reduced.matches;
-      // 1) AnimatedContent ([data-reveal])
+      // 1) AnimatedContent ([data-reveal]) com atraso escalonado real
       var reveals = all('[data-reveal]');
       if (!calm && 'IntersectionObserver' in global && reveals.length > 0) {
         var revealObs = new global.IntersectionObserver(
           function (entries) {
             entries.forEach(function (entry) {
               if (!entry.isIntersecting) return;
-              revealObs.unobserve(entry.target);
-              entry.target.classList.add('reveal-run');
-              entry.target.classList.remove('reveal-pending');
-              global.setTimeout(function () { entry.target.classList.remove('reveal-run'); }, 850);
+              var el = entry.target;
+              revealObs.unobserve(el);
+              el.classList.add('reveal-run');
+              el.classList.remove('reveal-pending');
+              var delay = Math.max.apply(null, [0].concat(
+                global.getComputedStyle(el).transitionDelay.split(',').map(function (v) {
+                  return (parseFloat(v) || 0) * (/ms\s*$/.test(v) ? 1 : 1000);
+                })
+              ));
+              global.setTimeout(function () { el.classList.remove('reveal-run'); }, 850 + delay + 120);
             });
           },
-          { rootMargin: '0px 0px -8% 0px' }
+          { rootMargin: '0px 0px -2% 0px', threshold: 0.02 }
         );
         reveals.forEach(function (el) {
           var rect = el.getBoundingClientRect();
@@ -833,6 +839,93 @@
             el.classList.add('reveal-pending');
             revealObs.observe(el);
           }
+        });
+      }
+
+      // 2) SplitText ([data-split]) em títulos de seção + BlurText ([data-blur]) em textos de leitura
+      var buildCharWords = function (el, counter) {
+        Array.from(el.childNodes).forEach(function (node) {
+          if (node.nodeType === 3) {
+            var frag = document.createDocumentFragment();
+            node.textContent.split(/(\s+)/).forEach(function (part) {
+              if (!part) return;
+              if (/^\s+$/.test(part)) {
+                frag.appendChild(document.createTextNode(part));
+                return;
+              }
+              var wordSpan = document.createElement('span');
+              wordSpan.className = 'split-word';
+              Array.from(part).forEach(function (ch) {
+                var chSpan = document.createElement('span');
+                chSpan.className = 'split-char';
+                chSpan.style.setProperty('--i', String(counter.i++));
+                chSpan.textContent = ch;
+                wordSpan.appendChild(chSpan);
+              });
+              frag.appendChild(wordSpan);
+            });
+            node.parentNode.replaceChild(frag, node);
+          } else if (node.nodeType === 1 && node.tagName !== 'BR') {
+            buildCharWords(node, counter);
+          }
+        });
+      };
+      var buildBlurWords = function (el, counter) {
+        Array.from(el.childNodes).forEach(function (node) {
+          if (node.nodeType === 3) {
+            var frag = document.createDocumentFragment();
+            node.textContent.split(/(\s+)/).forEach(function (part) {
+              if (!part) return;
+              if (/^\s+$/.test(part)) {
+                frag.appendChild(document.createTextNode(part));
+                return;
+              }
+              var wSpan = document.createElement('span');
+              wSpan.className = 'bt-word';
+              wSpan.style.setProperty('--i', String(counter.i++));
+              wSpan.textContent = part;
+              frag.appendChild(wSpan);
+            });
+            node.parentNode.replaceChild(frag, node);
+          } else if (node.nodeType === 1 && node.tagName !== 'BR') {
+            buildBlurWords(node, counter);
+          }
+        });
+      };
+
+      if (!calm && 'IntersectionObserver' in global) {
+        var textObs = new global.IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (entry) {
+              if (!entry.isIntersecting) return;
+              var el = entry.target;
+              textObs.unobserve(el);
+              if (el.hasAttribute('data-split')) {
+                el.classList.add('split-run');
+                el.classList.remove('split-pending');
+              } else if (el.hasAttribute('data-blur')) {
+                el.classList.add('blur-run');
+                el.classList.remove('blur-pending');
+              }
+            });
+          },
+          { rootMargin: '0px 0px -2% 0px', threshold: 0.02 }
+        );
+        all('[data-split]').forEach(function (el) {
+          var rect = el.getBoundingClientRect();
+          if (rect.top <= global.innerHeight * 0.9) return;
+          var label = el.textContent.replace(/\s+/g, ' ').trim();
+          el.setAttribute('aria-label', label);
+          buildCharWords(el, { i: 0 });
+          el.classList.add('split-pending');
+          textObs.observe(el);
+        });
+        all('[data-blur]').forEach(function (el) {
+          var rect = el.getBoundingClientRect();
+          if (rect.top <= global.innerHeight * 0.9) return;
+          buildBlurWords(el, { i: 0 });
+          el.classList.add('blur-pending');
+          textObs.observe(el);
         });
       }
 
