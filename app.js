@@ -312,7 +312,6 @@
       byId('invitation').classList.add('invitation-visible');
       document.body.classList.remove('is-sealed', 'is-opening', 'css-opening');
       document.body.classList.add('is-open');
-      byId('skip-opening').hidden = true;
       if (!instant) byId('invitation').focus({ preventScroll: true });
       if (global.gsap && !reduced.matches && !instant) {
         global.gsap.fromTo('.hero-copy,.hero-mark', { y: 22, opacity: 0 }, { y: 0, opacity: 1, duration: 0.75, stagger: 0.12, clearProps: 'transform,opacity' });
@@ -353,10 +352,6 @@
       openingTimer = global.setTimeout(function () { reveal(false); }, 4200);
     });
 
-    byId('skip-opening').addEventListener('click', function () {
-      reveal(true);
-    });
-
     byId('replay-envelope').addEventListener('click', function () {
       stopOpening();
       opening = false;
@@ -368,7 +363,6 @@
       document.body.classList.add('is-sealed');
       byId('open-invitation').disabled = false;
       byId('open-invitation').setAttribute('aria-expanded', 'false');
-      byId('skip-opening').hidden = false;
       global.scrollTo({ top: 0, behavior: 'auto' });
       byId('open-invitation').focus({ preventScroll: true });
     });
