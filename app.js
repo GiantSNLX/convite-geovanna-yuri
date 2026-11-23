@@ -324,9 +324,29 @@
       else global.scrollTo({ top: 0, behavior: 'auto' });
     }
 
+    var envelopeBtn = byId('open-invitation');
+    var envelopeScene = byId('envelope-scene');
+    if (envelopeScene && envelopeBtn) {
+      envelopeScene.addEventListener('pointermove', function (e) {
+        if (opening || reduced.matches || e.pointerType !== 'mouse') return;
+        var rect = envelopeScene.getBoundingClientRect();
+        var nx = (e.clientX - rect.left) / rect.width - 0.5;
+        var ny = (e.clientY - rect.top) / rect.height - 0.5;
+        envelopeBtn.style.transform = 'perspective(1400px) rotateY(' + (nx * 7).toFixed(2) + 'deg) rotateX(' + (-ny * 6).toFixed(2) + 'deg)';
+      });
+      envelopeScene.addEventListener('pointerleave', function () {
+        if (!opening) envelopeBtn.style.transform = '';
+      });
+      envelopeScene.addEventListener('click', function (e) {
+        if (opening || e.target.closest('#open-invitation')) return;
+        envelopeBtn.click();
+      });
+    }
+
     byId('open-invitation').addEventListener('click', function () {
       if (opening) return;
       opening = true;
+      this.style.transform = '';
       this.disabled = true;
       this.setAttribute('aria-expanded', 'true');
       document.body.classList.add('is-opening');
@@ -336,21 +356,21 @@
       }
       if (!global.gsap) {
         document.body.classList.add('css-opening');
-        openingTimer = global.setTimeout(function () { reveal(false); }, 3600);
+        openingTimer = global.setTimeout(function () { reveal(false); }, 4050);
         return;
       }
       openingTimeline = global.gsap.timeline({ onComplete: function () { reveal(false); }, defaults: { ease: 'power2.inOut' } });
       openingTimeline
-        .to('.cover-heading', { y: -16, opacity: 0, duration: 0.45 }, 0.1)
-        .to('.open-hint,.cover-bottom>p', { y: 12, opacity: 0, duration: 0.4 }, 0.15)
-        .to('.wax-seal', { scale: 0.96, y: 12, duration: 0.45, ease: 'power2.out' }, 0)
-        .set('.wax-seal', { zIndex: 4 }, 0.35)
-        .to('.envelope-flap', { rotationX: 180, duration: 0.85, transformOrigin: '50% 0%' }, 0.15)
-        .set('.envelope-flap', { zIndex: 0 }, 0.62)
-        .to('.stationery', { yPercent: 24, rotation: -2.2, scale: 0.98, duration: 1.05, ease: 'power2.out' }, 0.6)
-        .fromTo('.envelope-letter', { opacity: 0, yPercent: 18 }, { opacity: 1, yPercent: -29, scale: 1.04, duration: 1.2, ease: 'power3.out' }, 0.62)
-        .to('.envelope-scene', { opacity: 0, duration: 0.6 }, 3.15);
-      openingTimer = global.setTimeout(function () { reveal(false); }, 5200);
+        .to('.cover-heading', { y: -16, opacity: 0, duration: 0.45 }, 0.08)
+        .to('.open-hint,.cover-bottom>p', { y: 12, opacity: 0, duration: 0.4 }, 0.12)
+        .to('.wax-seal', { scale: 0.94, duration: 0.18, yoyo: true, repeat: 1, ease: 'power2.out' }, 0)
+        .set('.wax-seal', { zIndex: 4 }, 0.3)
+        .to('.envelope-flap', { transformPerspective: 1400, rotationX: 180, duration: 0.85, transformOrigin: '50% 0%' }, 0.12)
+        .set('.envelope-flap', { zIndex: 0 }, 0.58)
+        .to('.stationery', { yPercent: 24, rotation: -2, duration: 1.05, ease: 'power2.out' }, 0.55)
+        .fromTo('.envelope-letter', { opacity: 0, yPercent: 20 }, { opacity: 1, yPercent: -20, duration: 1.2, ease: 'power3.out' }, 0.6)
+        .to('.envelope-scene', { opacity: 0, duration: 0.6 }, 3.45);
+      openingTimer = global.setTimeout(function () { reveal(false); }, 5500);
     });
 
     byId('replay-envelope').addEventListener('click', function () {
