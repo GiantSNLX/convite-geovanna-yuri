@@ -1,0 +1,19 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Geovanna e Yuri//Convite de casamento//PT-BR
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:geovanna-yuri-4d603fad@convite.local
+DTSTAMP:20261119T134030Z
+DTSTART:20270113T230000Z
+DTEND:20270114T030000Z
+SUMMARY:Casamento de Geovanna & Yuri
+DESCRIPTION:Vamos celebrar o casamento de Geovanna & Yuri!
+LOCATION:Casa Colonial Festas & Eventos — R. Ovídio Gomes Monteiro\, 202
+ 0 — Alvorada\, Manaus — AM\, 69042-110
+CLASS:PUBLIC
+TRANSP:OPAQUE
+SEQUENCE:0
+END:VEVENT
+END:VCALENDAR

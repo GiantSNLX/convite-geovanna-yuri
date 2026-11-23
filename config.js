@@ -3,11 +3,11 @@
    Data, horário e local confirmados pelo casal em 09/11/2026.
    Horários: HH:MM; data: AAAA-MM-DD; WhatsApp: país + DDD + número.
    Quando startTime estiver vazio, o calendário cria um evento de dia inteiro.
-   Sem endTime, o .ics informa apenas o início, sem presumir duração.
+   Sem endTime, a agenda usa duração padrão de 4 horas para compatibilidade com Apple Calendar e Outlook.
 */
 window.WEDDING_CONFIG = {
   couple: {
-    firstNames: 'Geovanna & Yuri',
+    firstNames: 'Yuri & Geovanna',
     bride: 'Geovanna de Souza e Souza',
     groom: 'Yuri Menezes Tanaka'
   },
@@ -25,16 +25,18 @@ window.WEDDING_CONFIG = {
     amazonUrl: 'https://www.amazon.com.br/hz/wishlist/ls/1COYFBY0ZVLV5?ref_=wl_share',
     registryUrl: 'https://www.bemol.com.br/lp/geovanna-yuri',
     pixKey: 'b322cbd5-a624-4fcc-b2a0-19cf3da563b4',
-    pixRecipient: ''
+    pixRecipient: 'Yuri Menezes Tanaka / Geovanna de Souza e Souza'
   },
   rsvp: {
     whatsapp: '',
     email: '',
     deadline: '',
-    allowCompanions: false
+    askAge: false,
+    requireInviteLink: true,
+    allowCompanions: true
   },
   guestbook: {
-    // Vazio: o mural usa a API do mesmo servidor (npm start).
+    // Vazio: o mural e a confirmação usam a API do mesmo servidor (npm start).
     // Em hospedagem estática, informe aqui a origem HTTPS da API publicada.
     apiBase: ''
   },

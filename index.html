@@ -4,7 +4,11 @@
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f8faf4">
   <meta name="description" content="Yuri e Geovanna vão se casar. Celebre com a gente em 13 de janeiro de 2027, às 19h, na Casa Colonial, Manaus.">
-  <meta property="og:type" content="website"><meta property="og:locale" content="pt_BR"><meta property="og:title" content="Yuri & Geovanna · Nosso casamento"><meta property="og:description" content="13 de janeiro de 2027, às 19h. Um novo capítulo, com você fazendo parte dele.">
+  <meta property="og:type" content="website"><meta property="og:locale" content="pt_BR">
+  <meta property="og:title" content="Yuri & Geovanna · Nosso casamento">
+  <meta property="og:description" content="Um convite especial para você. 13 de janeiro de 2027, às 19h, em Manaus.">
+  <meta property="og:image" content="./assets/art/monograma-relevo-v4.png">
+  <meta name="twitter:card" content="summary_large_image">
   <title>Yuri & Geovanna · 13.01.2027</title>
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
   <link rel="preload" as="image" href="./assets/art/monograma-relevo-v4.png">
@@ -13,42 +17,408 @@
 </head>
 <body class="is-sealed" data-design="minimalista-interativa" data-edition="floral-v3">
   <section class="envelope-scene" id="envelope-scene" aria-labelledby="cover-heading">
-    <div class="cover-heading"><p class="eyebrow">O COMEÇO DO NOSSO PARA SEMPRE</p><h1 id="cover-heading">Um convite para <em>você.</em></h1><p>Com amor, Yuri e Geovanna.</p></div>
+    <div class="cover-heading">
+      <p class="eyebrow">O COMEÇO DO NOSSO PARA SEMPRE</p>
+      <h1 id="cover-heading">Um convite para <em>você.</em></h1>
+      <p>Com amor, Yuri e Geovanna.</p>
+    </div>
     <img class="cover-floral floral-left" src="./assets/art/floral-v4.webp" alt="" width="1024" height="1024" aria-hidden="true">
     <img class="cover-floral floral-right" src="./assets/art/floral-v4.webp" alt="" width="1024" height="1024" aria-hidden="true">
     <button id="open-invitation" class="envelope" type="button" aria-label="Abrir a carta de casamento de Yuri e Geovanna" aria-controls="invitation" aria-expanded="false">
       <span class="stationery" aria-hidden="true">
         <span class="envelope-back"></span>
-        <span class="envelope-letter"><span class="letter-border"><img src="./assets/art/monograma-relevo-v4.png" alt="" width="240" height="240"><span>O nosso sim tem um lugar para você.</span></span></span>
+        <span class="envelope-letter">
+          <span class="letter-border">
+            <img src="./assets/art/monograma-relevo-v4.png" alt="" width="240" height="240">
+            <span>O nosso sim tem um lugar para você.</span>
+          </span>
+        </span>
         <span class="envelope-front"></span><span class="envelope-flap"></span>
-        <span class="wax-seal"><span>Y<span>&</span>G</span></span>
+        <span class="wax-seal"><span>Y<span>&amp;</span>G</span></span>
       </span>
     </button>
-    <div class="cover-bottom"><span class="open-hint"><img class="icon" src="./assets/icons/heart.svg" alt="">Toque na carta para abrir</span><p>13 JANEIRO 2027 <span>·</span> MANAUS, AM</p><button type="button" class="text-button" id="skip-opening" hidden>Pular abertura <img class="icon" src="./assets/icons/arrow-right.svg" alt=""></button></div>
-    <noscript><p>Nosso casamento: 13/01/2027, às 19h, Casa Colonial Festas & Eventos, R. Ovídio Gomes Monteiro, 2020, Manaus. <a href="https://maps.app.goo.gl/Wuj7nFFyw22sqrQA9?g_st=aw">Como chegar</a>. Ative JavaScript para abrir a carta e usar os formulários.</p></noscript>
+    <div class="cover-bottom">
+      <span class="open-hint"><img class="icon" src="./assets/icons/heart.svg" alt="">Toque na carta para abrir</span>
+      <p>13 JANEIRO 2027 <span>·</span> MANAUS, AM</p>
+      <button type="button" class="text-button" id="skip-opening">Abrir sem animação <img class="icon" src="./assets/icons/arrow-right.svg" alt=""></button>
+    </div>
+    <noscript><p>Nosso casamento: 13/01/2027, às 19h, Casa Colonial Festas &amp; Eventos, R. Ovídio Gomes Monteiro, 2020, Manaus. <a href="https://maps.app.goo.gl/Wuj7nFFyw22sqrQA9?g_st=aw">Como chegar</a>. Ative JavaScript para abrir a carta e usar os formulários.</p></noscript>
   </section>
 
   <main id="invitation" tabindex="-1" hidden>
-    <header class="site-header"><div id="reading-progress" class="reading-progress" aria-hidden="true"></div><div class="header-inner wrap"><a class="wordmark" href="#inicio" aria-label="Yuri e Geovanna, início"><span class="brand-initials">Y<span>&</span>G</span><span class="brand-caption">Yuri & Geovanna<small>13 de janeiro de 2027</small></span></a><nav class="desktop-nav" aria-label="Navegação principal"><a href="#dia">O grande dia</a><a href="#presentes">Presentes</a><a href="#mural">Recados</a></nav><button class="button button-small header-rsvp" type="button" data-open-rsvp>Confirmar presença <img class="icon" src="./assets/icons/arrow-up-right.svg" alt=""></button><button id="menu-toggle" class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu"><span></span><span></span><span class="sr-only">Abrir menu</span></button></div><nav id="mobile-menu" class="mobile-menu" aria-label="Navegação no celular" hidden><a href="#dia">O grande dia</a><a href="#presentes">Presentes</a><a href="#mural">Recados</a><button type="button" data-open-rsvp>Confirmar presença</button></nav></header>
+    <header class="site-header">
+      <div class="header-inner wrap">
+        <a class="wordmark" href="#inicio" aria-label="Yuri e Geovanna, início">
+          <span class="brand-initials">Y<span>&amp;</span>G</span>
+          <span class="brand-caption">Yuri &amp; Geovanna<small>13 de janeiro de 2027</small></span>
+        </a>
+        <nav class="desktop-nav" aria-label="Navegação principal">
+          <a href="#dia">O grande dia</a>
+          <a href="#presentes">Presentes</a>
+          <a href="#mural">Recados</a>
+        </nav>
+        <button class="button button-small header-rsvp" type="button" data-open-rsvp><span data-rsvp-cta-label>Confirmar presença</span> <img class="icon" src="./assets/icons/arrow-up-right.svg" alt=""></button>
+        <button id="menu-toggle" class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu"><span></span><span></span><span class="sr-only">Abrir menu</span></button>
+      </div>
+      <nav id="mobile-menu" class="mobile-menu" aria-label="Navegação no celular" hidden>
+        <a href="#dia">O grande dia</a>
+        <a href="#presentes">Presentes</a>
+        <a href="#mural">Recados</a>
+        <button type="button" data-open-rsvp><span data-rsvp-cta-label>Confirmar presença</span></button>
+      </nav>
+    </header>
 
-    <div class="journey wrap" aria-label="Seu convite"><span><img class="icon" src="./assets/icons/mail.svg" alt=""> Seu convite está aberto</span><a href="#contagem">Contagem para o sim <img class="icon" src="./assets/icons/arrow-right.svg" alt=""></a></div>
-    <section id="inicio" class="hero wrap" aria-labelledby="couple-heading"><div class="hero-mark"><img class="hero-floral" src="./assets/art/floral-v4.webp" alt="" width="600" height="600" aria-hidden="true"><img class="monogram" src="./assets/art/monograma-relevo-v4.png" alt="Monograma Y e G com samambaia, Yuri e Geovanna, 13 de janeiro de 2027" width="500" height="500"></div><div class="hero-copy"><p class="eyebrow">NÓS VAMOS NOS CASAR</p><h1 id="couple-heading">Yuri <span>&</span><br>Geovanna</h1><p class="hero-invitation">Vivemos muitas aventuras. Agora, com Deus à frente, vamos começar a mais bonita delas: construir uma vida juntos. Queremos você por perto quando dissermos sim.</p><div class="hero-actions"><button class="button" type="button" data-open-rsvp>Eu vou celebrar com vocês <img class="icon" src="./assets/icons/arrow-up-right.svg" alt=""></button><button class="button button-outline" type="button" data-open-calendar><img class="icon" src="./assets/icons/calendar-days.svg" alt=""> Salvar a data</button></div><div class="event-summary"><div><span class="summary-label">O DIA</span><strong>13 de janeiro</strong><span>Quarta-feira, 2027</span></div><div><span class="summary-label">A HORA</span><strong>19h</strong><span>Horário de Manaus</span></div><a href="#dia"><span class="summary-label">O LUGAR</span><strong>Casa Colonial</strong><span>Manaus, AM <img class="icon" src="./assets/icons/arrow-up-right.svg" alt=""></span></a></div></div></section>
-    <section id="contagem" class="countdown-section wrap" aria-labelledby="countdown-heading"><div><p class="eyebrow">CADA DIA MAIS PERTO</p><h2 id="countdown-heading">Até o nosso <em>sim.</em></h2><p id="countdown-caption">Contando os dias para celebrar com você.</p></div><div class="countdown" aria-hidden="true"><div><strong data-countdown="days">—</strong><span>dias</span></div><b>:</b><div><strong data-countdown="hours">—</strong><span>horas</span></div><b>:</b><div><strong data-countdown="minutes">—</strong><span>minutos</span></div><b>:</b><div><strong data-countdown="seconds">—</strong><span>segundos</span></div></div><p id="countdown-accessible" class="sr-only"></p></section>
-    <aside class="verse wrap" aria-label="Versículo do casal"><span aria-hidden="true">“</span><blockquote><p>Melhor é serem dois do que um.</p><cite>Eclesiastes 4:9</cite></blockquote><span class="verse-rule" aria-hidden="true"></span><p class="verse-caption">Um amor para dividir os dias.<br>Uma vida para construir juntos.</p></aside>
+    <div class="journey wrap" aria-label="Seu convite">
+      <span><img class="icon" src="./assets/icons/mail.svg" alt=""> Seu convite está aberto</span>
+      <a href="#contagem">Contagem para o sim <img class="icon" src="./assets/icons/arrow-right.svg" alt=""></a>
+    </div>
 
-    <section id="dia" class="day-section" aria-labelledby="day-heading"><div class="day-layout wrap"><div class="day-copy"><p class="eyebrow">01 / O GRANDE DIA</p><h2 id="day-heading">O próximo capítulo<br>começa <em>aqui.</em></h2><p class="venue" data-event-venue>Casa Colonial Festas & Eventos</p><address data-event-address>R. Ovídio Gomes Monteiro, 2020 — Alvorada, Manaus — AM, 69042-110</address><p class="day-date"><img class="icon" src="./assets/icons/calendar-days.svg" alt=""><span><strong>13 de janeiro de 2027</strong><br>Quarta-feira, às 19h</span></p><div class="map-actions"><a id="directions-link" class="button" href="https://www.google.com/maps/dir/?api=1&destination=Casa+Colonial+Festas+%26+Eventos%2C+R.+Ovidio+Gomes+Monteiro%2C+2020%2C+Manaus%2C+AM" target="_blank" rel="noopener noreferrer">Traçar minha rota <img class="icon" src="./assets/icons/navigation.svg" alt=""></a><button id="copy-address" class="text-button" type="button">Copiar endereço <img class="icon" src="./assets/icons/copy.svg" alt=""></button></div><a class="place-link" id="maps-link" href="https://maps.app.goo.gl/Wuj7nFFyw22sqrQA9?g_st=aw" target="_blank" rel="noopener noreferrer">Ver o local no Google Maps <img class="icon" src="./assets/icons/arrow-up-right.svg" alt=""></a></div><figure class="map-frame"><iframe id="venue-map" title="Mapa da Casa Colonial Festas & Eventos em Manaus" src="https://maps.google.com/maps?q=Casa%20Colonial%20Festas%20%26%20Eventos%2C%20Rua%20Ov%C3%ADdio%20Gomes%20Monteiro%202020%2C%20Manaus%20AM&z=16&output=embed" width="640" height="400" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe><figcaption><img class="icon" src="./assets/icons/map-pin.svg" alt=""><span>Casa Colonial <small>Alvorada · Manaus</small></span><a href="https://maps.app.goo.gl/Wuj7nFFyw22sqrQA9?g_st=aw" target="_blank" rel="noopener noreferrer" aria-label="Abrir Casa Colonial no Google Maps"><img class="icon" src="./assets/icons/arrow-up-right.svg" alt=""></a></figcaption></figure></div></section>
+    <section id="inicio" class="hero wrap" aria-labelledby="couple-heading">
+      <div class="hero-mark">
+        <img class="hero-floral" src="./assets/art/floral-v4.webp" alt="" width="600" height="600" aria-hidden="true">
+        <img class="monogram" src="./assets/art/monograma-relevo-v4.png" alt="Monograma Y e G com samambaia, Yuri e Geovanna, 13 de janeiro de 2027" width="500" height="500">
+      </div>
+      <div class="hero-copy">
+        <div id="invite-personal-badge" class="invite-personal-badge" hidden>
+          <span class="badge-label" id="invite-badge-family">Convite pessoal</span>
+          <span class="badge-meta" id="invite-badge-limit"></span>
+        </div>
+        <p class="eyebrow">NÓS VAMOS NOS CASAR</p>
+        <h1 id="couple-heading">Yuri <span>&amp;</span><br>Geovanna</h1>
+        <p class="hero-invitation">Vivemos muitas aventuras. Agora, com Deus à frente, vamos começar a mais bonita delas: construir uma vida juntos. Queremos você por perto quando dissermos sim.</p>
+        <div class="hero-actions">
+          <button class="button" type="button" data-open-rsvp><span data-rsvp-cta-label>Eu vou celebrar com vocês</span> <img class="icon" src="./assets/icons/arrow-up-right.svg" alt=""></button>
+          <button class="button button-outline" type="button" data-open-calendar><img class="icon" src="./assets/icons/calendar-days.svg" alt=""> Salvar a data</button>
+        </div>
+        <button type="button" class="resume-pill" id="rsvp-resume-pill" hidden>
+          <img class="icon" src="./assets/icons/check.svg" alt="">
+          <span id="rsvp-resume-text">Sua resposta já foi enviada · Consultar ou alterar</span>
+        </button>
+        <div class="event-summary">
+          <div><span class="summary-label">O DIA</span><strong>13 de janeiro</strong><span>Quarta-feira, 2027</span></div>
+          <div><span class="summary-label">A HORA</span><strong>19h</strong><span>Horário de Manaus</span></div>
+          <a href="#dia"><span class="summary-label">O LUGAR</span><strong>Casa Colonial</strong><span>Manaus, AM <img class="icon" src="./assets/icons/arrow-up-right.svg" alt=""></span></a>
+        </div>
+      </div>
+    </section>
 
-    <section id="presentes" class="gifts-section wrap" aria-labelledby="gifts-heading"><div><p class="eyebrow">02 / UM NOVO LAR</p><h2 id="gifts-heading">O melhor presente<br>é ter você <em>por perto.</em></h2><p class="section-copy">Seu abraço já faz parte do que sonhamos para esse dia. Se quiser nos presentear também, deixamos nossos desejos aqui.</p></div><div class="gift-links"><a id="registry-link" class="gift-link" href="https://www.bemol.com.br/lp/geovanna-yuri" target="_blank" rel="noopener noreferrer"><span class="gift-icon"><img class="icon" src="./assets/icons/gift.svg" alt=""></span><span><strong>Lista na Bemol</strong><small>Um carinho para o nosso lar</small></span><img class="icon" src="./assets/icons/arrow-up-right.svg" alt=""></a><a id="amazon-link" class="gift-link" href="https://www.amazon.com.br/hz/wishlist/ls/1COYFBY0ZVLV5?ref_=wl_share" target="_blank" rel="noopener noreferrer"><span class="gift-icon"><img class="icon" src="./assets/icons/shopping-bag.svg" alt=""></span><span><strong>Lista na Amazon</strong><small>Pequenos desejos, novos começos</small></span><img class="icon" src="./assets/icons/arrow-up-right.svg" alt=""></a><button class="gift-link" type="button" data-open-pix><span class="gift-icon"><img class="icon" src="./assets/icons/qr-code.svg" alt=""></span><span><strong>Presentear com Pix</strong><small>Um gesto de carinho, do seu jeito</small></span><img class="icon" src="./assets/icons/arrow-up-right.svg" alt=""></button></div></section>
+    <section id="contagem" class="countdown-section wrap" aria-labelledby="countdown-heading">
+      <div>
+        <p class="eyebrow">CADA DIA MAIS PERTO</p>
+        <h2 id="countdown-heading">Até o nosso <em>sim.</em></h2>
+        <p id="countdown-caption">Contando os dias para celebrar com você.</p>
+      </div>
+      <div class="countdown" aria-hidden="true">
+        <div><strong data-countdown="days">—</strong><span>dias</span></div>
+        <b>:</b>
+        <div><strong data-countdown="hours">—</strong><span>horas</span></div>
+        <b>:</b>
+        <div><strong data-countdown="minutes">—</strong><span>minutos</span></div>
+        <b>:</b>
+        <div><strong data-countdown="seconds">—</strong><span>segundos</span></div>
+      </div>
+      <p id="countdown-accessible" class="sr-only"></p>
+    </section>
 
-    <section id="mural" class="guestbook-section wrap" aria-labelledby="guestbook-heading"><div class="section-heading"><div><p class="eyebrow">03 / PALAVRAS PARA GUARDAR</p><h2 id="guestbook-heading">Deixe um pouco<br>do seu <em>carinho.</em></h2></div><div><p>Uma lembrança, um desejo ou algumas palavras para a nossa vida a dois.</p><button id="open-message" class="button" type="button">Escrever um recado <img class="icon" src="./assets/icons/mail.svg" alt=""></button></div></div><div id="guestbook-list" class="guestbook-list" aria-label="Mural público de recados"></div><div class="mural-bottom"><p id="guestbook-status" role="status" aria-live="polite">Carregando os recados…</p><button id="guestbook-retry" class="text-button" type="button" hidden>Tentar novamente</button><button id="guestbook-more" class="text-button" type="button" hidden>Mais recados <img class="icon" src="./assets/icons/arrow-right.svg" alt=""></button></div></section>
+    <aside class="verse wrap" aria-label="Versículo do casal">
+      <span aria-hidden="true">“</span>
+      <blockquote>
+        <p>Melhor é serem dois do que um.</p>
+        <cite>Eclesiastes 4:9</cite>
+      </blockquote>
+      <span class="verse-rule" aria-hidden="true"></span>
+      <p class="verse-caption">Um amor para dividir os dias.<br>Uma vida para construir juntos.</p>
+    </aside>
 
-    <section class="closing wrap"><img class="closing-floral" src="./assets/art/floral-v4.webp" alt="" width="500" height="500" loading="lazy" aria-hidden="true"><p>O nosso sim fica ainda mais bonito<br>com você fazendo parte dele.</p><button class="button" type="button" data-open-rsvp>Confirmar minha presença <img class="icon" src="./assets/icons/check.svg" alt=""></button><p class="full-names">Yuri Menezes Tanaka <span>&</span> Geovanna de Souza e Souza</p></section><footer class="site-footer wrap"><span>COM AMOR, YURI & GEOVANNA</span><div><button id="replay-envelope" class="text-button" type="button">Abrir a carta de novo</button><button id="share-invitation" class="icon-button" type="button" aria-label="Compartilhar convite"><img class="icon" src="./assets/icons/share-2.svg" alt=""></button></div></footer>
+    <section id="dia" class="day-section" aria-labelledby="day-heading">
+      <div class="day-layout wrap">
+        <div class="day-copy">
+          <p class="eyebrow">01 / O GRANDE DIA</p>
+          <h2 id="day-heading">O próximo capítulo<br>começa <em>aqui.</em></h2>
+          <p class="venue" data-event-venue>Casa Colonial Festas &amp; Eventos</p>
+          <address data-event-address>R. Ovídio Gomes Monteiro, 2020 — Alvorada, Manaus — AM, 69042-110</address>
+          <p class="day-date"><img class="icon" src="./assets/icons/calendar-days.svg" alt=""><span><strong>13 de janeiro de 2027</strong><br>Quarta-feira, às 19h</span></p>
+          <div class="map-actions">
+            <a id="directions-link" class="button" href="https://www.google.com/maps/dir/?api=1&destination=Casa+Colonial+Festas+%26+Eventos%2C+R.+Ovidio+Gomes+Monteiro%2C+2020%2C+Manaus%2C+AM" target="_blank" rel="noopener noreferrer">Traçar minha rota <img class="icon" src="./assets/icons/navigation.svg" alt=""></a>
+            <button id="copy-address" class="text-button" type="button">Copiar endereço <img class="icon" src="./assets/icons/copy.svg" alt=""></button>
+          </div>
+          <a class="place-link" id="maps-link" href="https://maps.app.goo.gl/Wuj7nFFyw22sqrQA9?g_st=aw" target="_blank" rel="noopener noreferrer">Ver o local no Google Maps <img class="icon" src="./assets/icons/arrow-up-right.svg" alt=""></a>
+        </div>
+        <figure class="map-frame">
+          <iframe id="venue-map" title="Mapa da Casa Colonial Festas & Eventos em Manaus" src="https://maps.google.com/maps?q=Casa%20Colonial%20Festas%20%26%20Eventos%2C%20Rua%20Ov%C3%ADdio%20Gomes%20Monteiro%202020%2C%20Manaus%20AM&z=16&output=embed" width="640" height="400" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+          <figcaption>
+            <img class="brand-icon" src="./assets/icons/brands/google-maps.svg" alt="">
+            <span>Casa Colonial <small>Alvorada · Manaus</small></span>
+            <a href="https://maps.app.goo.gl/Wuj7nFFyw22sqrQA9?g_st=aw" target="_blank" rel="noopener noreferrer" aria-label="Abrir Casa Colonial no Google Maps"><img class="icon" src="./assets/icons/arrow-up-right.svg" alt=""></a>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="presentes" class="gifts-section wrap" aria-labelledby="gifts-heading">
+      <div>
+        <p class="eyebrow">02 / UM NOVO LAR</p>
+        <h2 id="gifts-heading">O melhor presente<br>é ter você <em>por perto.</em></h2>
+        <p class="section-copy">Seu abraço já faz parte do que sonhamos para esse dia. Se quiser nos presentear também, deixamos nossos desejos aqui.</p>
+      </div>
+      <div class="gift-links">
+        <a id="registry-link" class="gift-link" href="https://www.bemol.com.br/lp/geovanna-yuri" target="_blank" rel="noopener noreferrer">
+          <span class="gift-icon"><img class="icon" src="./assets/icons/gift.svg" alt=""></span>
+          <span><strong>Lista na Bemol</strong><small>Um carinho para o nosso lar</small></span>
+          <img class="icon" src="./assets/icons/arrow-up-right.svg" alt="">
+        </a>
+        <a id="amazon-link" class="gift-link" href="https://www.amazon.com.br/hz/wishlist/ls/1COYFBY0ZVLV5?ref_=wl_share" target="_blank" rel="noopener noreferrer">
+          <span class="gift-icon"><img class="icon" src="./assets/icons/shopping-bag.svg" alt=""></span>
+          <span><strong>Lista na Amazon</strong><small>Pequenos desejos, novos começos</small></span>
+          <img class="icon" src="./assets/icons/arrow-up-right.svg" alt="">
+        </a>
+        <button class="gift-link" type="button" data-open-pix>
+          <span class="gift-icon"><img class="icon" src="./assets/icons/qr-code.svg" alt=""></span>
+          <span><strong>Presentear com Pix</strong><small>Um gesto de carinho, do seu jeito</small></span>
+          <img class="icon" src="./assets/icons/arrow-up-right.svg" alt="">
+        </button>
+      </div>
+    </section>
+
+    <section id="mural" class="guestbook-section wrap" aria-labelledby="guestbook-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">03 / PALAVRAS PARA GUARDAR</p>
+          <h2 id="guestbook-heading">Deixe um pouco<br>do seu <em>carinho.</em></h2>
+        </div>
+        <div>
+          <p>Uma lembrança, um desejo ou algumas palavras para a nossa vida a dois.</p>
+          <button id="open-message" class="button" type="button">Escrever um recado <img class="icon" src="./assets/icons/mail.svg" alt=""></button>
+        </div>
+      </div>
+      <div id="guestbook-list" class="guestbook-list" aria-label="Mural público de recados"></div>
+      <div class="mural-bottom">
+        <p id="guestbook-status" role="status" aria-live="polite">Carregando os recados…</p>
+        <button id="guestbook-retry" class="text-button" type="button" hidden>Tentar novamente</button>
+        <button id="guestbook-more" class="text-button" type="button" hidden>Mais recados <img class="icon" src="./assets/icons/arrow-right.svg" alt=""></button>
+      </div>
+    </section>
+
+    <section class="closing wrap">
+      <img class="closing-floral" src="./assets/art/floral-v4.webp" alt="" width="500" height="500" loading="lazy" aria-hidden="true">
+      <p>O nosso sim fica ainda mais bonito<br>com você fazendo parte dele.</p>
+      <button class="button" type="button" data-open-rsvp><span data-rsvp-cta-label>Confirmar minha presença</span> <img class="icon" src="./assets/icons/check.svg" alt=""></button>
+      <p class="full-names">Yuri Menezes Tanaka <span>&amp;</span> Geovanna de Souza e Souza</p>
+    </section>
+
+    <footer class="site-footer wrap">
+      <span>COM AMOR, YURI &amp; GEOVANNA</span>
+      <div>
+        <button id="replay-envelope" class="text-button" type="button">Abrir a carta de novo</button>
+        <button id="share-invitation" class="icon-button" type="button" aria-label="Compartilhar convite público"><img class="icon" src="./assets/icons/share-2.svg" alt=""></button>
+      </div>
+    </footer>
   </main>
 
-  <dialog id="rsvp-dialog" aria-labelledby="rsvp-heading"><div class="dialog-header"><p class="eyebrow">VAMOS CELEBRAR JUNTOS?</p><button class="icon-button" type="button" data-close-dialog aria-label="Fechar confirmação de presença"><img class="icon" src="./assets/icons/x.svg" alt=""></button></div><div class="dialog-body"><h2 id="rsvp-heading">Esperamos <em>você.</em></h2><p>Conte para nós se podemos esperar pelo seu abraço.</p><form id="rsvp-form"><div class="form-field"><label for="guest-name">Seu nome completo</label><input id="guest-name" name="guestName" autocomplete="name" maxlength="120" required placeholder="Como está no seu convite"></div><div class="form-field"><label for="guest-response">Você vem?</label><select id="guest-response" name="response"><option value="yes">Sim, vou celebrar com vocês!</option><option value="no">Infelizmente, não poderei ir.</option></select></div><div class="form-field" id="companions-field" hidden><label for="guest-companions">Acompanhantes incluídos no convite</label><input id="guest-companions" name="companions" type="number" min="0" max="20" value="0"></div><div class="honeypot" aria-hidden="true"><label for="rsvp-website">Deixe vazio</label><input id="rsvp-website" name="website" tabindex="-1" autocomplete="off"></div><button id="send-rsvp" class="button button-full" type="submit">Enviar minha resposta <img class="icon" src="./assets/icons/check.svg" alt=""></button><p id="rsvp-status" class="form-status" role="status" aria-live="polite"></p><p class="fine-print">Sua resposta fica reservada aos noivos. Ela não aparece no mural.</p></form></div></dialog>
-  <dialog id="message-dialog" aria-labelledby="message-heading"><div class="dialog-header"><p class="eyebrow">PARA YURI & GEOVANNA</p><button class="icon-button" type="button" data-close-dialog aria-label="Fechar recado"><img class="icon" src="./assets/icons/x.svg" alt=""></button></div><div class="dialog-body"><h2 id="message-heading">Um recado,<br><em>com amor.</em></h2><p>Seu nome e sua mensagem aparecerão no mural para todos os convidados.</p><form id="message-form"><div class="form-field"><label for="message-name">Seu nome</label><input id="message-name" name="name" autocomplete="name" maxlength="80" required placeholder="Como você quer assinar?"></div><div class="form-field"><label for="message-text">Sua mensagem</label><textarea id="message-text" name="message" rows="4" minlength="3" maxlength="600" required placeholder="Um desejo bonito para a nossa vida a dois…"></textarea><span id="message-count" class="message-count">0 / 600</span></div><div class="honeypot" aria-hidden="true"><label for="message-website">Deixe vazio</label><input id="message-website" name="website" tabindex="-1" autocomplete="off"></div><button id="send-message" class="button button-full" type="submit">Publicar meu recado <img class="icon" src="./assets/icons/mail.svg" alt=""></button><p id="message-status" class="form-status" role="status" aria-live="polite"></p></form></div></dialog>
-  <dialog id="pix-dialog" aria-labelledby="pix-heading"><div class="dialog-header"><p class="eyebrow">PARA O NOSSO NOVO COMEÇO</p><button class="icon-button" type="button" data-close-dialog aria-label="Fechar Pix"><img class="icon" src="./assets/icons/x.svg" alt=""></button></div><div class="dialog-body"><h2 id="pix-heading">Um carinho<br><em>em Pix.</em></h2><p>Obrigada por fazer parte dos nossos sonhos.</p><label for="pix-key">Nossa chave Pix</label><input id="pix-key" class="pix-key" readonly spellcheck="false" aria-describedby="pix-instructions"><p id="pix-recipient" hidden></p><p id="pix-instructions" class="fine-print">Use a opção de pagamento por chave Pix no aplicativo do seu banco.</p><button class="button button-full" id="copy-pix" type="button"><img class="icon" src="./assets/icons/copy.svg" alt=""> Copiar chave Pix</button><p class="form-status" data-pix-status role="status" aria-live="polite"></p></div></dialog>
-  <dialog id="calendar-dialog" aria-labelledby="calendar-heading"><div class="dialog-header"><p class="eyebrow">UM DIA PARA GUARDAR</p><button class="icon-button" type="button" data-close-dialog aria-label="Fechar calendário"><img class="icon" src="./assets/icons/x.svg" alt=""></button></div><div class="dialog-body"><h2 id="calendar-heading">Salve a nossa <em>data.</em></h2><p id="calendar-status" class="form-status" role="status"></p><div id="calendar-options" hidden><a class="calendar-option" id="google-calendar-link" href="#dia" target="_blank" rel="noopener noreferrer"><span>Google Agenda<small>Android, iPhone ou computador</small></span><img class="icon" src="./assets/icons/arrow-up-right.svg" alt=""></a><button class="calendar-option" type="button" id="download-ics"><span>Apple Calendar / arquivo .ics<small>Baixe e abra na sua agenda</small></span><img class="icon" src="./assets/icons/arrow-up-right.svg" alt=""></button><p class="fine-print">Confira os detalhes e salve o evento. Salvar na agenda não confirma presença.</p></div></div></dialog>
+  <!-- Modal RSVP: por link individual de família + revisão + alteração -->
+  <dialog id="rsvp-dialog" aria-labelledby="rsvp-heading">
+    <div class="dialog-header">
+      <div class="dialog-title-group">
+        <p class="eyebrow" id="rsvp-eyebrow">VAMOS CELEBRAR JUNTOS?</p>
+        <p class="invite-dialog-meta" id="rsvp-invite-meta" hidden></p>
+      </div>
+      <button class="icon-button" type="button" data-close-dialog aria-label="Fechar confirmação de presença"><img class="icon" src="./assets/icons/x.svg" alt=""></button>
+    </div>
+    <div class="dialog-body">
+      <div id="rsvp-step-token" hidden>
+        <h2>Convite por <em>família.</em></h2>
+        <p>Para controlar os lugares com carinho, cada família recebe um link individual. Cole seu link ou código abaixo.</p>
+        <form id="rsvp-token-form">
+          <div class="form-field">
+            <label for="invite-token-input">Código ou link do seu convite</label>
+            <input id="invite-token-input" name="token" autocomplete="off" required placeholder="Ex: familia-silva ou cole seu link">
+          </div>
+          <button id="load-invite-btn" class="button button-full" type="submit">Acessar meu convite <img class="icon" src="./assets/icons/arrow-right.svg" alt=""></button>
+          <p id="rsvp-token-status" class="form-status" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+
+      <div id="rsvp-step-existing" hidden>
+        <h2>Sua resposta<br>já foi <em>enviada.</em></h2>
+        <p>Você pode consultar ou atualizar as informações associadas a este convite.</p>
+        <div class="review-box" id="rsvp-existing-summary"></div>
+        <div class="dialog-actions-stack">
+          <button type="button" class="button button-full" id="rsvp-start-alter">Alterar resposta</button>
+          <button type="button" class="button button-outline button-full" id="rsvp-existing-calendar" hidden><img class="icon" src="./assets/icons/calendar-days.svg" alt=""> Adicionar à agenda</button>
+          <button type="button" class="text-button" id="rsvp-existing-message">Deixar um recado para os noivos</button>
+        </div>
+      </div>
+
+      <div id="rsvp-step-form">
+        <h2 id="rsvp-heading">Esperamos <em>você.</em></h2>
+        <p>Conte para nós se podemos esperar pelo seu abraço.</p>
+        <form id="rsvp-form">
+          <fieldset class="radio-group">
+            <legend class="sr-only">Você poderá estar com a gente?</legend>
+            <label class="radio-card">
+              <input type="radio" name="response" id="response-yes" value="yes" checked>
+              <span class="radio-copy"><strong>Sim, estarei presente</strong><small>Informar quem estará presente</small></span>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="response" id="response-no" value="no">
+              <span class="radio-copy"><strong>Não poderei comparecer</strong><small>Avisar os noivos com carinho</small></span>
+            </label>
+          </fieldset>
+
+          <select id="guest-response" name="responseSelect" hidden aria-hidden="true" tabindex="-1">
+            <option value="yes">Sim</option>
+            <option value="no">Não</option>
+          </select>
+
+          <div class="form-field">
+            <label for="guest-name">Nome do responsável pela resposta</label>
+            <input id="guest-name" name="guestName" autocomplete="name" maxlength="120" required placeholder="Como está no seu convite">
+          </div>
+
+          <div class="form-field" id="guest-age-field" hidden>
+            <label for="guest-age">Idade (opcional)</label>
+            <input id="guest-age" name="guestAge" type="number" inputmode="numeric" min="0" max="120" placeholder="Ex: 28">
+          </div>
+
+          <div class="form-field">
+            <label for="guest-phone" id="guest-phone-label">WhatsApp ou telefone</label>
+            <input id="guest-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" required placeholder="(92) 99999-9999">
+          </div>
+
+          <div class="family-box" id="companions-field">
+            <div class="family-head">
+              <div>
+                <strong>Pessoas que estarão presentes</strong>
+                <small>Informe os nomes de quem vai celebrar conosco</small>
+              </div>
+              <span id="family-count" class="family-count">1 de 2 lugares informados</span>
+            </div>
+            <div id="rsvp-guests-list" class="guests-list"></div>
+            <button type="button" id="add-guest-btn" class="button button-outline button-small add-guest-btn">+ Adicionar pessoa</button>
+            <p id="extra-seat-note" class="fine-print" hidden>Limite do convite atingido. Para solicitar um lugar adicional, entre em contato com os noivos.</p>
+          </div>
+
+          <div class="form-field" id="absence-note-field" hidden>
+            <label for="guest-absence-note">Mensagem opcional para os noivos</label>
+            <textarea id="guest-absence-note" name="absenceNote" rows="3" maxlength="600" placeholder="Se desejar, deixe uma palavra para Yuri e Geovanna…"></textarea>
+          </div>
+
+          <div class="honeypot" aria-hidden="true">
+            <label for="rsvp-website">Deixe vazio</label>
+            <input id="rsvp-website" name="website" tabindex="-1" autocomplete="off">
+          </div>
+
+          <p class="fine-print">Usaremos essas informações para organizar nossa celebração e entrar em contato sobre sua confirmação.</p>
+          <button id="review-rsvp-btn" class="button button-full" type="submit">Confira sua resposta <img class="icon" src="./assets/icons/arrow-right.svg" alt=""></button>
+          <p id="rsvp-status" class="form-status" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+
+      <div id="rsvp-step-review" hidden>
+        <h2>Confira sua <em>resposta.</em></h2>
+        <div class="review-box" id="rsvp-review-box"></div>
+        <p class="fine-print">Usaremos essas informações para organizar nossa celebração e entrar em contato sobre sua confirmação.</p>
+        <div class="dialog-actions-stack">
+          <button id="send-rsvp" class="button button-full" type="button">Enviar confirmação <img class="icon" src="./assets/icons/check.svg" alt=""></button>
+          <button id="back-to-edit-rsvp" class="button button-outline button-full" type="button">Voltar e corrigir</button>
+        </div>
+        <p id="rsvp-review-status" class="form-status" role="status" aria-live="polite"></p>
+      </div>
+
+      <div id="rsvp-step-next" hidden>
+        <h2 id="rsvp-next-heading">Presença <em>confirmada!</em></h2>
+        <p id="rsvp-next-summary" class="form-status is-success"></p>
+        <div class="dialog-actions-stack">
+          <button type="button" class="button button-full" id="rsvp-open-calendar"><img class="icon" src="./assets/icons/calendar-days.svg" alt=""> Adicionar à agenda</button>
+          <button type="button" class="button button-outline button-full" id="rsvp-next-message"><img class="icon" src="./assets/icons/mail.svg" alt=""> Deixar um recado</button>
+        </div>
+        <div class="next-footer">
+          <button type="button" class="text-button" id="rsvp-edit-response">Alterar resposta</button>
+          <button type="button" class="text-button" data-close-dialog>Voltar ao convite</button>
+        </div>
+      </div>
+
+      <div id="rsvp-step-message" hidden>
+        <button type="button" class="text-button back-step-btn" data-rsvp-back="next">← Voltar</button>
+        <h2>Um recado,<br><em>com amor.</em></h2>
+        <p>Sua mensagem será enviada para os noivos e aparecerá no mural após revisão.</p>
+        <form id="rsvp-message-form">
+          <div class="form-field">
+            <label for="rsvp-message-name">Seu nome</label>
+            <input id="rsvp-message-name" name="name" autocomplete="name" maxlength="80" required placeholder="Como você quer assinar?">
+          </div>
+          <div class="form-field">
+            <label for="rsvp-message-text">Sua mensagem</label>
+            <textarea id="rsvp-message-text" name="message" rows="4" minlength="3" maxlength="600" required placeholder="Um desejo bonito para a nossa vida a dois…"></textarea>
+            <span id="rsvp-message-count" class="message-count">0 / 600</span>
+          </div>
+          <div class="honeypot" aria-hidden="true">
+            <label for="rsvp-message-website">Deixe vazio</label>
+            <input id="rsvp-message-website" name="website" tabindex="-1" autocomplete="off">
+          </div>
+          <button id="rsvp-send-message" class="button button-full" type="submit">Enviar recado <img class="icon" src="./assets/icons/mail.svg" alt=""></button>
+          <p id="rsvp-message-status" class="form-status" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="message-dialog" aria-labelledby="message-heading">
+    <div class="dialog-header"><p class="eyebrow">PARA YURI &amp; GEOVANNA</p><button class="icon-button" type="button" data-close-dialog aria-label="Fechar recado"><img class="icon" src="./assets/icons/x.svg" alt=""></button></div>
+    <div class="dialog-body">
+      <h2 id="message-heading">Um recado,<br><em>com amor.</em></h2>
+      <p>Sua mensagem fará parte das lembranças e aparecerá no mural depois de ser revisada pelos noivos.</p>
+      <form id="message-form">
+        <div class="form-field"><label for="message-name">Seu nome</label><input id="message-name" name="name" autocomplete="name" maxlength="80" required placeholder="Como você quer assinar?"></div>
+        <div class="form-field"><label for="message-text">Sua mensagem</label><textarea id="message-text" name="message" rows="4" minlength="3" maxlength="600" required placeholder="Um desejo bonito para a nossa vida a dois…"></textarea><span id="message-count" class="message-count">0 / 600</span></div>
+        <div class="honeypot" aria-hidden="true"><label for="message-website">Deixe vazio</label><input id="message-website" name="website" tabindex="-1" autocomplete="off"></div>
+        <button id="send-message" class="button button-full" type="submit">Enviar recado <img class="icon" src="./assets/icons/mail.svg" alt=""></button>
+        <p id="message-status" class="form-status" role="status" aria-live="polite"></p>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog id="pix-dialog" aria-labelledby="pix-heading">
+    <div class="dialog-header"><p class="eyebrow">PARA O NOSSO NOVO COMEÇO</p><button class="icon-button" type="button" data-close-dialog aria-label="Fechar Pix"><img class="icon" src="./assets/icons/x.svg" alt=""></button></div>
+    <div class="dialog-body">
+      <h2 id="pix-heading">Um carinho<br><em>em Pix.</em></h2>
+      <p>Obrigada por fazer parte dos nossos sonhos.</p>
+      <label for="pix-key">Nossa chave Pix</label>
+      <input id="pix-key" class="pix-key" readonly spellcheck="false" aria-describedby="pix-instructions">
+      <p id="pix-recipient" class="pix-recipient" hidden></p>
+      <p id="pix-instructions" class="fine-print">Use a opção de pagamento por chave Pix no aplicativo do seu banco.</p>
+      <button class="button button-full" id="copy-pix" type="button"><img class="icon" src="./assets/icons/copy.svg" alt=""> Copiar chave Pix</button>
+      <p class="form-status" data-pix-status role="status" aria-live="polite"></p>
+    </div>
+  </dialog>
+
+  <dialog id="calendar-dialog" aria-labelledby="calendar-heading">
+    <div class="dialog-header"><p class="eyebrow">UM DIA PARA GUARDAR</p><button class="icon-button" type="button" data-close-dialog aria-label="Fechar calendário"><img class="icon" src="./assets/icons/x.svg" alt=""></button></div>
+    <div class="dialog-body">
+      <h2 id="calendar-heading">Salve a nossa <em>data.</em></h2>
+      <p id="calendar-status" class="form-status" role="status"></p>
+      <div id="calendar-options" hidden>
+        <a class="calendar-option" id="google-calendar-link" href="#dia" target="_blank" rel="noopener noreferrer">
+          <span class="option-row"><img class="brand-icon" src="./assets/icons/brands/google-calendar.svg" alt=""><span>Google Calendar<small>Android, iPhone ou computador</small></span></span>
+          <img class="icon" src="./assets/icons/arrow-up-right.svg" alt="">
+        </a>
+        <a class="calendar-option" id="outlook-calendar-link" href="#dia" target="_blank" rel="noopener noreferrer">
+          <span class="option-row"><img class="brand-icon" src="./assets/icons/brands/outlook-calendar.svg" alt=""><span>Outlook Calendar<small>Outlook na web ou aplicativo</small></span></span>
+          <img class="icon" src="./assets/icons/arrow-up-right.svg" alt="">
+        </a>
+        <a class="calendar-option" id="apple-calendar-link" href="./casamento-yuri-geovanna.ics" data-apple-calendar>
+          <span class="option-row"><img class="brand-icon" src="./assets/icons/brands/apple.svg" alt=""><span>Apple Calendar (.ics)<small>iPhone, iPad ou Mac (abre direto na agenda)</small></span></span>
+          <img class="icon" src="./assets/icons/arrow-up-right.svg" alt="">
+        </a>
+        <button class="calendar-option" type="button" id="download-ics">
+          <span class="option-row"><img class="icon" src="./assets/icons/calendar-days.svg" alt=""><span>Baixar arquivo .ics<small>Para qualquer outro aplicativo de agenda</small></span></span>
+          <img class="icon" src="./assets/icons/arrow-right.svg" alt="">
+        </button>
+        <p class="fine-print">Conclua o salvamento dentro do aplicativo de agenda escolhido. Salvar na agenda não confirma presença.</p>
+      </div>
+    </div>
+  </dialog>
+
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 </body>
 </html>
