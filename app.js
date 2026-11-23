@@ -585,6 +585,7 @@
         reactBitsMounted = true;
         mountReactBits();
       }
+      if (typeof markTallBlocks === 'function') markTallBlocks();
       var target;
       try {
         target = document.getElementById(decodeURIComponent(global.location.hash.slice(1)));
@@ -730,32 +731,83 @@
     if (global.matchMedia('(pointer:fine)').matches) {
       document.addEventListener('pointerenter', function (e) {
         if (e.pointerType === 'touch' || !(e.target instanceof Element)) return;
-        var item = e.target.closest('.rb-spotlight,.rb-star-border,.gift-link');
+        var item = e.target.closest('.rb-spotlight,.gift-link');
         if (item) sound.hover();
       }, true);
     }
 
-    // Navegação discreta por blocos (PageUp / PageDown) fora de diálogos e inputs
+    // Descida em blocos idêntica ao portfólio: scroll-snap mandatory + data-alto em blocos maiores que a área útil
     var snapBlocks = all('.snap-block');
-    document.addEventListener('keydown', function (e) {
-      if (!document.body.classList.contains('is-open') || document.querySelector('dialog[open]')) return;
-      if (e.target && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.target.tagName)) return;
-      if (e.key !== 'PageDown' && e.key !== 'PageUp') return;
-      e.preventDefault();
-      var currentIdx = 0;
-      var bestDist = Infinity;
-      snapBlocks.forEach(function (sec, idx) {
-        var dist = Math.abs(sec.getBoundingClientRect().top);
-        if (dist < bestDist) {
-          bestDist = dist;
-          currentIdx = idx;
-        }
+    var siteHeaderEl = document.querySelector('.site-header');
+    var headerBottom = function () {
+      return siteHeaderEl ? siteHeaderEl.getBoundingClientRect().bottom : 0;
+    };
+    function markTallBlocks() {
+      if (!document.body.classList.contains('is-open')) return;
+      var util = global.innerHeight - headerBottom();
+      snapBlocks.forEach(function (sec) {
+        sec.toggleAttribute('data-alto', sec.getBoundingClientRect().height > util + 2);
       });
-      var nextIdx = Math.max(0, Math.min(snapBlocks.length - 1, currentIdx + (e.key === 'PageDown' ? 1 : -1)));
-      snapBlocks[nextIdx].scrollIntoView({ behavior: reduced.matches ? 'auto' : 'smooth' });
-    });
+    }
+    markTallBlocks();
+    global.addEventListener('resize', markTallBlocks, { passive: true });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(markTallBlocks);
+    if ('ResizeObserver' in global && snapBlocks.length > 0) {
+      var blockRo = new global.ResizeObserver(markTallBlocks);
+      snapBlocks.forEach(function (sec) { blockRo.observe(sec); });
+    }
 
-    // Porte React Bits (AnimatedContent + SpotlightCard + StarBorder, inspirado no portfólio do Yuri)
+    var snapDirs = { ArrowDown: 1, PageDown: 1, ' ': 1, ArrowUp: -1, PageUp: -1 };
+    var snapIgnore = 'input, textarea, select, button, [contenteditable=""], [contenteditable="true"], [role="tablist"], [role="tab"], summary, video, audio';
+    var snapPending = null;
+    if (snapBlocks.length > 1) {
+      document.addEventListener('keydown', function (e) {
+        var dir = snapDirs[e.key];
+        if (!dir || e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+        if (!document.body.classList.contains('is-open') || document.querySelector('dialog[open]')) return;
+        if (!global.getComputedStyle(document.documentElement).scrollSnapType.includes('mandatory')) return;
+        var focusEl = document.activeElement;
+        if (focusEl instanceof Element && focusEl.closest(snapIgnore)) return;
+
+        var now = global.performance.now();
+        var scrollY = global.scrollY;
+        var line = headerBottom();
+        var util = global.innerHeight - line;
+        var docEnd = document.documentElement.scrollHeight - global.innerHeight;
+        var onTrack = snapPending !== null &&
+          scrollY >= Math.min(snapPending.from, snapPending.target) - 2 &&
+          scrollY <= Math.max(snapPending.from, snapPending.target) + 2;
+        var y = snapPending && onTrack && !e.repeat && now < snapPending.until ? snapPending.target : scrollY;
+
+        var ranges = snapBlocks.map(function (sec) {
+          var box = sec.getBoundingClientRect();
+          var start = Math.min(docEnd, Math.max(0, box.top + scrollY - line));
+          var base = box.height > util + 2 ? Math.min(docEnd, box.bottom + scrollY - global.innerHeight) : start;
+          return { start: start, base: Math.max(start, base) };
+        });
+
+        var step = e.key.indexOf('Arrow') === 0 ? 40 : Math.round(util * 0.85);
+        var inside = ranges.find(function (r) { return r.base > r.start + 2 && y >= r.start - 2 && y <= r.base + 2; });
+        var targetY;
+        if (inside && dir > 0 && y < inside.base - 2) targetY = Math.min(inside.base, y + step);
+        else if (inside && dir < 0 && y > inside.start + 2) targetY = Math.max(inside.start, y - step);
+        else {
+          var stops = [];
+          ranges.forEach(function (r) { stops.push(r.start, r.base); });
+          stops.push(docEnd);
+          stops.sort(function (a, b) { return a - b; });
+          targetY = dir > 0
+            ? stops.find(function (s) { return s > y + 2; })
+            : stops.slice().reverse().find(function (s) { return s < y - 2; });
+        }
+        if (targetY === undefined) return;
+        e.preventDefault();
+        snapPending = { target: targetY, from: scrollY, until: now + 700 };
+        global.scrollTo({ top: targetY, behavior: reduced.matches ? 'instant' : 'smooth' });
+      });
+    }
+
+    // Porte React Bits (AnimatedContent + SpotlightCard)
     var spotlightObserverTargets = new Set();
     var registerSpotlight = function () {};
     function mountReactBits() {
@@ -922,102 +974,6 @@
         };
         global.addEventListener('pointerup', release, { passive: true });
         global.addEventListener('pointercancel', release, { passive: true });
-      }
-
-      // 3) StarBorder (.rb-star-border) em botões e links principais
-      if (finePointer && !calm) {
-        var runStarBorder = function (el, origin) {
-          if (el.hasAttribute('data-sb-volta')) return;
-          var w = el.offsetWidth;
-          var h = el.offsetHeight;
-          if (w < 8 || h < 8) return;
-          var canvas = document.createElement('canvas');
-          var ctx = canvas.getContext('2d');
-          if (!ctx) return;
-          el.setAttribute('data-sb-volta', '');
-          canvas.className = 'sb-luz';
-          canvas.setAttribute('aria-hidden', 'true');
-          var bleed = 36;
-          var dpr = Math.min(global.devicePixelRatio || 1, 2);
-          canvas.width = Math.max(1, Math.round((w + bleed * 2) * dpr));
-          canvas.height = Math.max(1, Math.round((h + bleed * 2) * dpr));
-          el.append(canvas);
-
-          var rad = Math.min(12, w / 2, h / 2);
-          var perim = Math.max(1, 2 * (w + h));
-          var phase = origin ? Math.max(0, Math.min(perim, origin.x)) : 0;
-          var traveled = 0;
-          var fade = 0;
-          var leaving = false;
-          var last = global.performance.now();
-          var sraf = 0;
-          var pointOnRect = function (dist) {
-            var d = ((dist % perim) + perim) % perim;
-            if (d <= w) return { x: d, y: 0 };
-            d -= w;
-            if (d <= h) return { x: w, y: d };
-            d -= h;
-            if (d <= w) return { x: w - d, y: h };
-            d -= w;
-            return { x: 0, y: h - d };
-          };
-          var stopStar = function () {
-            global.cancelAnimationFrame(sraf);
-            canvas.remove();
-            el.removeAttribute('data-sb-volta');
-          };
-          var step = function (now) {
-            var dt = Math.min(0.05, Math.max(0.001, (now - last) / 1000));
-            last = now;
-            var speed = perim / 2.6;
-            var delta = speed * dt;
-            phase = (phase + delta) % perim;
-            traveled += delta;
-            if (traveled >= perim) leaving = true;
-            var targetF = leaving ? 0 : 1;
-            fade += (targetF - fade) * (1 - Math.exp(-dt / (targetF > fade ? 0.12 : 0.35)));
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.setTransform(dpr, 0, 0, dpr, bleed, bleed);
-            var trailLen = perim * 0.28;
-            var steps = 36;
-            var pPrev = pointOnRect(phase);
-            for (var i = 1; i <= steps; i += 1) {
-              var pCur = pointOnRect(phase - trailLen * (i / steps));
-              var u = 1 - i / steps;
-              ctx.lineWidth = 1.6;
-              ctx.strokeStyle = 'rgba(176,142,69,' + (u * u * 0.72 * fade).toFixed(3) + ')';
-              ctx.beginPath();
-              ctx.moveTo(pPrev.x, pPrev.y);
-              ctx.lineTo(pCur.x, pCur.y);
-              ctx.stroke();
-              pPrev = pCur;
-            }
-            var head = pointOnRect(phase);
-            var glow = ctx.createRadialGradient(head.x, head.y, 0, head.x, head.y, 18);
-            glow.addColorStop(0, 'rgba(176,142,69,' + (0.45 * fade).toFixed(3) + ')');
-            glow.addColorStop(1, 'rgba(176,142,69,0)');
-            ctx.fillStyle = glow;
-            ctx.fillRect(head.x - 18, head.y - 18, 36, 36);
-            if (leaving && fade < 0.02) {
-              stopStar();
-              return;
-            }
-            sraf = global.requestAnimationFrame(step);
-          };
-          sraf = global.requestAnimationFrame(step);
-        };
-
-        all('.rb-star-border').forEach(function (el) {
-          el.addEventListener('pointerenter', function (e) {
-            if (e.pointerType === 'touch') return;
-            var r = el.getBoundingClientRect();
-            runStarBorder(el, { x: e.clientX - r.left, y: e.clientY - r.top });
-          });
-          el.addEventListener('focusin', function () {
-            if (el.matches(':focus-visible')) runStarBorder(el, null);
-          });
-        });
       }
     }
 
