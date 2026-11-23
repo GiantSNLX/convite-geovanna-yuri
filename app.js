@@ -338,13 +338,24 @@
         if (!opening) envelopeBtn.style.transform = '';
       });
       envelopeScene.addEventListener('click', function (e) {
-        if (opening || e.target.closest('#open-invitation')) return;
+        if (opening) {
+          if (openingTimeline && openingTimeline.time() > 1.8 && openingTimeline.time() < 5.7) {
+            openingTimeline.time(5.75);
+          }
+          return;
+        }
+        if (e.target.closest('#open-invitation')) return;
         envelopeBtn.click();
       });
     }
 
     byId('open-invitation').addEventListener('click', function () {
-      if (opening) return;
+      if (opening) {
+        if (openingTimeline && openingTimeline.time() > 1.8 && openingTimeline.time() < 5.7) {
+          openingTimeline.time(5.75);
+        }
+        return;
+      }
       opening = true;
       this.style.transform = '';
       this.disabled = true;
@@ -356,21 +367,22 @@
       }
       if (!global.gsap) {
         document.body.classList.add('css-opening');
-        openingTimer = global.setTimeout(function () { reveal(false); }, 4050);
+        openingTimer = global.setTimeout(function () { reveal(false); }, 6400);
         return;
       }
       openingTimeline = global.gsap.timeline({ onComplete: function () { reveal(false); }, defaults: { ease: 'power2.inOut' } });
       openingTimeline
         .to('.cover-heading', { y: -16, opacity: 0, duration: 0.45 }, 0.08)
-        .to('.open-hint,.cover-bottom>p', { y: 12, opacity: 0, duration: 0.4 }, 0.12)
-        .to('.wax-seal', { scale: 0.94, duration: 0.18, yoyo: true, repeat: 1, ease: 'power2.out' }, 0)
-        .set('.wax-seal', { zIndex: 4 }, 0.3)
-        .to('.envelope-flap', { transformPerspective: 1400, rotationX: 180, duration: 0.85, transformOrigin: '50% 0%' }, 0.12)
-        .set('.envelope-flap', { zIndex: 0 }, 0.58)
-        .to('.stationery', { yPercent: 24, rotation: -2, duration: 1.05, ease: 'power2.out' }, 0.55)
-        .fromTo('.envelope-letter', { opacity: 0, yPercent: 20 }, { opacity: 1, yPercent: -20, duration: 1.2, ease: 'power3.out' }, 0.6)
-        .to('.envelope-scene', { opacity: 0, duration: 0.6 }, 3.45);
-      openingTimer = global.setTimeout(function () { reveal(false); }, 5500);
+        .to('.open-hint,.cover-bottom>p', { y: 12, opacity: 0, duration: 0.35 }, 0.1)
+        .to('.wax-seal', { scale: 0.94, duration: 0.16, yoyo: true, repeat: 1, ease: 'power2.out' }, 0)
+        .set('.wax-seal', { zIndex: 4 }, 0.28)
+        .to('.envelope-flap', { transformPerspective: 1400, rotationX: 180, duration: 0.85, transformOrigin: '50% 0%' }, 0.1)
+        .set('.envelope-flap', { zIndex: 0 }, 0.52)
+        .fromTo('.envelope-letter', { opacity: 0, yPercent: 26 }, { opacity: 1, duration: 0.12, ease: 'none' }, 0.48)
+        .to('.stationery', { yPercent: 24, rotation: -2, duration: 1.05, ease: 'power2.out' }, 0.52)
+        .to('.envelope-letter', { yPercent: -20, duration: 1.25, ease: 'power3.out' }, 0.54)
+        .to('.envelope-scene', { opacity: 0, duration: 0.65 }, 5.75);
+      openingTimer = global.setTimeout(function () { reveal(false); }, 7800);
     });
 
     byId('replay-envelope').addEventListener('click', function () {
