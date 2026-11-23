@@ -281,7 +281,6 @@
     var toastTimer;
     var muralLoaded = false;
     var dialogOpeners = new WeakMap();
-    var ENVELOPE_SEEN_KEY = 'convite_envelope_opened_v1';
     var INVITE_TOKEN_KEY = 'convite_family_token_v1';
 
     function toast(message) {
@@ -305,16 +304,9 @@
       }
     }
 
-    function markEnvelopeSeen() {
-      try {
-        global.localStorage.setItem(ENVELOPE_SEEN_KEY, '1');
-      } catch (_) {}
-    }
-
     function reveal(instant) {
       stopOpening();
       opening = false;
-      markEnvelopeSeen();
       byId('envelope-scene').hidden = true;
       byId('invitation').hidden = false;
       byId('invitation').classList.add('invitation-visible');
@@ -368,9 +360,6 @@
     byId('replay-envelope').addEventListener('click', function () {
       stopOpening();
       opening = false;
-      try {
-        global.localStorage.removeItem(ENVELOPE_SEEN_KEY);
-      } catch (_) {}
       if (global.gsap) global.gsap.set(animatedParts, { clearProps: 'all' });
       byId('invitation').hidden = true;
       byId('invitation').classList.remove('invitation-visible');
@@ -1391,13 +1380,7 @@
       if (urlToken) await loadInviteByToken(urlToken, true);
       else if (storedToken) await loadInviteByToken(storedToken, true);
 
-      var forceOpen = params.get('aberto') === '1';
-      var alreadyOpenedBefore = false;
-      try {
-        alreadyOpenedBefore = global.localStorage.getItem(ENVELOPE_SEEN_KEY) === '1';
-      } catch (_) {}
-
-      if (forceOpen || alreadyOpenedBefore || reduced.matches) {
+      if (params.get('aberto') === '1') {
         reveal(true);
       }
     })();
