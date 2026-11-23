@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240" role="img" aria-labelledby="logo3-title logo3-desc">
+  <title id="logo3-title">Geovanna &amp; Yuri | Medalhão botânico em relevo</title>
+  <desc id="logo3-desc">Monograma vetorial G e Y verde profundo, unido por um e comercial dourado, sobre pergaminho creme com borda dupla e samambaias. Animação ambiente suave, desativada para movimento reduzido.</desc>
+  <style>
+    .medallion { transform-origin: 120px 120px; animation: medallion-breathe 6.4s ease-in-out infinite alternate; }
+    .halo { animation: halo-breathe 6.4s ease-in-out infinite alternate; }
+    .fern-top { transform-origin: 88px 63px; animation: fern-top-sway 4.8s ease-in-out infinite alternate; }
+    .fern-bottom { transform-origin: 125px 201px; animation: fern-bottom-sway 5.6s ease-in-out infinite alternate; }
+    @keyframes medallion-breathe { from { transform: translateY(0.6px) scale(0.996); } to { transform: translateY(-0.6px) scale(1.004); } }
+    @keyframes halo-breathe { from { opacity: 0.22; } to { opacity: 0.48; } }
+    @keyframes fern-top-sway { from { transform: rotate(-1.4deg); } to { transform: rotate(1.2deg); } }
+    @keyframes fern-bottom-sway { from { transform: rotate(1.3deg); } to { transform: rotate(-1.5deg); } }
+    @media (prefers-reduced-motion: reduce) {
+      .medallion, .halo, .fern-top, .fern-bottom { animation: none; transform: none; }
+    }
+  </style>
+  <defs>
+    <radialGradient id="logo3-parchment" cx="37%" cy="28%" r="78%">
+      <stop offset="0" stop-color="#fffdf9"/>
+      <stop offset="0.68" stop-color="#faf6ee"/>
+      <stop offset="1" stop-color="#f2eadb"/>
+    </radialGradient>
+    <filter id="logo3-glow" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="2.4"/>
+    </filter>
+    <filter id="logo3-relief" x="-15%" y="-15%" width="130%" height="135%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="1" stdDeviation="0.65" flood-color="#8c7850" flood-opacity="0.19"/>
+    </filter>
+    <!-- Each pinna is a tapered, curved blade rather than a round laurel leaf. -->
+    <path id="logo3-pinna" d="M0 0 C-5-1-12-6-14-12 C-8-11-2-7 0 0Z"/>
+    <g id="logo3-fern" stroke="#33482b" stroke-width="0.55" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M0 0 C-4-24 5-53 0-79" fill="none" stroke-width="0.85"/>
+      <g fill="#33482b" stroke="none">
+        <use href="#logo3-pinna" transform="translate(-0.8 -8) rotate(-12) scale(1.05)"/>
+        <use href="#logo3-pinna" transform="translate(-0.8 -8) rotate(12) scale(-1.05 1.05)"/>
+        <use href="#logo3-pinna" transform="translate(-0.4 -17) rotate(-9)"/>
+        <use href="#logo3-pinna" transform="translate(-0.4 -17) rotate(9) scale(-1 1)"/>
+        <use href="#logo3-pinna" transform="translate(0.6 -26) rotate(-6) scale(0.92)"/>
+        <use href="#logo3-pinna" transform="translate(0.6 -26) rotate(6) scale(-0.92 0.92)"/>
+      </g>
+      <g fill="#698153" stroke="none">
+        <use href="#logo3-pinna" transform="translate(1.4 -35) scale(0.82)"/>
+        <use href="#logo3-pinna" transform="translate(1.4 -35) scale(-0.82 0.82)"/>
+        <use href="#logo3-pinna" transform="translate(1.7 -43) rotate(4) scale(0.7)"/>
+        <use href="#logo3-pinna" transform="translate(1.7 -43) rotate(-4) scale(-0.7 0.7)"/>
+        <use href="#logo3-pinna" transform="translate(1.6 -51) rotate(6) scale(0.58)"/>
+        <use href="#logo3-pinna" transform="translate(1.6 -51) rotate(-6) scale(-0.58 0.58)"/>
+        <use href="#logo3-pinna" transform="translate(1.2 -58) rotate(8) scale(0.46)"/>
+        <use href="#logo3-pinna" transform="translate(1.2 -58) rotate(-8) scale(-0.46 0.46)"/>
+        <use href="#logo3-pinna" transform="translate(0.7 -65) rotate(12) scale(0.32)"/>
+        <use href="#logo3-pinna" transform="translate(0.7 -65) rotate(-12) scale(-0.32 0.32)"/>
+        <path d="M0.3-69 C-2-73-1-77 0-81 C2-77 3-73 0.3-69Z"/>
+      </g>
+    </g>
+  </defs>
+  <g class="medallion">
+    <circle class="halo" cx="120" cy="122" r="103" fill="none" stroke="#a6823c" stroke-width="3" filter="url(#logo3-glow)" opacity="0.3"/>
+    <circle cx="120" cy="120" r="101" fill="url(#logo3-parchment)"/>
+    <circle cx="120" cy="120" r="100" fill="none" stroke="#fffdf9" stroke-width="1.8"/>
+    <g fill="none" stroke="#a6823c">
+      <circle cx="120" cy="120" r="101.2" stroke-width="0.75"/>
+      <circle cx="120" cy="120" r="96.9" stroke-width="1.35" stroke-linecap="round" stroke-dasharray="0.1 4.13"/>
+      <circle cx="120" cy="120" r="92.8" stroke-width="0.55"/>
+    </g>
+    <circle cx="120" cy="119.4" r="91.7" fill="none" stroke="#fffdf9" stroke-width="0.75" opacity="0.9"/>
+    <!-- Editorial letterforms are outlined paths, independent of installed fonts. -->
+    <g fill="#24321e" filter="url(#logo3-relief)">
+      <path d="M117 68 L118 88 L115.8 88 C112.4 75.3 104.5 69.9 94.6 69.9 C80.5 69.9 73 82.4 73 101.7 C73 122.7 81.7 134.1 95.4 134.1 C101.3 134.1 105.7 132.4 109 129.5 L109 112.8 C109 107.9 106.7 106.5 100.4 106.1 L100.4 104 L125 104 L125 106.1 C119.7 106.6 118.2 108.1 118.2 112.8 L118.2 129.5 C111.9 134.6 104 137.1 94.1 137.1 C73.6 137.1 61.4 123.6 61.4 102.8 C61.4 81.8 75.1 66.9 94.8 66.9 C104.7 66.9 109.3 70.4 112.5 70.4 C114.2 70.4 115.2 69.6 115.5 68Z"/>
+      <path d="M126 109 L151 109 L151 111.1 C145.5 111.4 144.5 113.2 147.2 118.1 L161.1 142.8 L174 119.1 C177 113.5 175.8 111.6 170 111.1 L170 109 L189 109 L189 111.1 C183.8 111.8 181.2 114.9 178 120.6 L163.8 146.4 L163.8 169.4 C163.8 175.1 166.1 176.4 173.1 176.8 L173.1 179 L145.3 179 L145.3 176.8 C152.3 176.4 154.7 175.1 154.7 169.4 L154.7 148.1 L137.3 117.6 C134.8 113.3 132.9 111.7 126 111.1Z"/>
+    </g>
+    <!-- Fine gold ampersand bridges the two initials without font dependencies. -->
+    <path d="M126.5 127.5 C133 123.5 132.2 116.5 127.1 116.5 C120.2 116.5 120.7 124.6 125.2 130.5 L137.2 146 C140.2 149.8 142.8 149.8 144.2 146.3 M126 128 C111.7 135 116.5 149.5 126 149.5 C134.1 149.5 138.4 141.5 140.4 133.5 M136.6 133.5 L145.2 133.5" fill="none" stroke="#a6823c" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
+    <g fill="none" stroke="#a6823c" stroke-width="0.6" stroke-linecap="round">
+      <path d="M115 52 L141 52 M122 49 L134 49 M81 166 L107 166 M87 169 L101 169"/>
+      <path d="M126 56 L128 54 L130 56 L128 58Z M92 161 L94 159 L96 161 L94 163Z" fill="#a6823c" stroke="none"/>
+    </g>
+    <g class="fern-top">
+      <use href="#logo3-fern" transform="translate(88 63) rotate(-42) scale(0.7)"/>
+      <use href="#logo3-fern" transform="translate(88 63) rotate(-79) scale(0.59)"/>
+      <use href="#logo3-fern" transform="translate(88 63) rotate(-111) scale(0.43)" opacity="0.86"/>
+      <path d="M86 61 Q91 67 95 70" fill="none" stroke="#a6823c" stroke-width="0.8"/>
+    </g>
+    <g class="fern-bottom">
+      <use href="#logo3-fern" transform="translate(125 201) rotate(-60) scale(0.84)"/>
+      <use href="#logo3-fern" transform="translate(125 201) rotate(55) scale(0.83)"/>
+      <use href="#logo3-fern" transform="translate(125 201) rotate(-92) scale(0.58)" opacity="0.87"/>
+      <use href="#logo3-fern" transform="translate(125 201) rotate(89) scale(0.57)" opacity="0.87"/>
+      <path d="M120 198 Q125 202 130 198 M121 202 Q125 205 129 202" fill="none" stroke="#a6823c" stroke-width="0.9" stroke-linecap="round"/>
+    </g>
+  </g>
+</svg>

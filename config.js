@@ -18,7 +18,7 @@ window.WEDDING_CONFIG = {
     endTime: '',
     timeZone: 'America/Manaus',
     venue: 'Casa Colonial Festas & Eventos',
-    address: 'R. Ovídio Gomes Monteiro, 2020 — Alvorada, Manaus — AM, 69042-110',
+    address: 'R. Ovídio Gomes Monteiro, 2020 — Alvorada, Manaus\u00A0—\u00A0AM, 69042-110',
     mapsUrl: 'https://maps.app.goo.gl/Wuj7nFFyw22sqrQA9?g_st=aw'
   },
   gifts: {

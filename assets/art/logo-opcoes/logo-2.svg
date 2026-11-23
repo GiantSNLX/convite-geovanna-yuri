@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Geovanna &amp; Yuri | Monograma editorial botânico</title>
+  <desc id="desc">Iniciais desenhadas em serifas de alto contraste, ampersand dourado e círculo interrompido, acompanhados de uma samambaia assimétrica que respira suavemente.</desc>
+  <style>
+    .ring { animation: opening 5s ease-in-out infinite; }
+    .frond { transform-box: fill-box; transform-origin: right bottom; animation: breathe 5s ease-in-out infinite alternate; }
+    .frond.reverse { transform-origin: left bottom; animation-delay: -2.5s; }
+    .frond.late { animation-delay: -1.4s; }
+    .shimmer { animation: gold-light 5s ease-in-out infinite; }
+    @keyframes breathe {
+      from { transform: rotate(-1.8deg); }
+      to { transform: rotate(1.8deg); }
+    }
+    @keyframes opening {
+      0%, 100% { stroke-dasharray: 32 6 17 6 26 13; stroke-dashoffset: 0; }
+      50% { stroke-dasharray: 30 8 15 8 24 15; stroke-dashoffset: 1; }
+    }
+    @keyframes gold-light {
+      0%, 12% { transform: translate(-260px, -90px); opacity: 0; }
+      24% { opacity: .85; }
+      76% { opacity: .85; }
+      88%, 100% { transform: translate(260px, 90px); opacity: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .ring, .frond, .shimmer { animation-play-state: paused; }
+    }
+  </style>
+  <defs>
+    <linearGradient id="warm-light" x1="70" y1="160" x2="162" y2="68" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#a6823c" stop-opacity="0"/>
+      <stop offset=".36" stop-color="#d5b871" stop-opacity=".18"/>
+      <stop offset=".5" stop-color="#fff0c0"/>
+      <stop offset=".64" stop-color="#d5b871" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#a6823c" stop-opacity="0"/>
+    </linearGradient>
+    <circle id="broken-ring" class="ring" cx="120" cy="120" r="98" pathLength="100" stroke-width="1.4" stroke-dasharray="32 6 17 6 26 13" transform="rotate(-104 120 120)"/>
+    <!-- Original outlined lettering keeps the monogram independent of installed fonts. -->
+    <path id="ampersand" d="M132 151C132 145 128 142 124 142C119 142 115 146 115 151C115 156 120 163 126 170C130 175 134 178 139 176L140 174C136 176 132 173 129 169L119 155C115 149 118 143 122 144C127 145 125 151 120 156C113 162 108 165 109 172C110 178 116 181 122 179C129 177 134 168 137 161L141 160L141 159L130 159L130 160L135 161C132 169 126 177 121 178C116 179 112 175 113 170C114 165 118 161 123 157C129 153 132 153 132 151Z"/>
+    <mask id="gold-mask" maskUnits="userSpaceOnUse" x="15" y="15" width="210" height="210" style="mask-type: alpha">
+      <use href="#broken-ring" stroke="white"/>
+      <use href="#ampersand" fill="white"/>
+    </mask>
+    <!-- A pinnate fern segment with narrow alternating leaflets. -->
+    <g id="pinna">
+      <path d="M0 0Q-19-5-43-18" stroke="currentColor" stroke-width=".65" stroke-linecap="round"/>
+      <path d="M-6-2Q-7-12-15-17Q-16-9-6-2ZM-12-4Q-20-1-26-5Q-23-9-12-4ZM-16-6Q-19-18-26-21Q-27-14-16-6ZM-23-9Q-31-5-36-10Q-31-13-23-9ZM-27-11Q-30-21-36-24Q-37-17-27-11ZM-34-14Q-42-12-46-17Q-41-19-34-14ZM-37-16Q-40-23-46-25Q-46-20-37-16Z" fill="currentColor"/>
+    </g>
+  </defs>
+  <use href="#broken-ring" stroke="#a6823c"/>
+  <!-- Bodoni-inspired G and Y, drawn as paths with fine hairlines. -->
+  <g fill="#24321e">
+    <path d="M124 83H123L121 88C116 83 111 81 104 81C85 81 74 96 74 115C74 136 86 148 103 148C112 148 119 145 125 141V123H130V122H110V123H117V141C114 145 109 147 104 147C90 147 84 134 84 115C84 95 91 82 104 82C115 82 121 90 123 101H124Z"/>
+    <path d="M135 103H159V104H151L168 133L183 104H176V103H193V104H185L169 135V165H177V166H152V165H160V136L141 104H135Z"/>
+  </g>
+  <use href="#ampersand" fill="#a6823c"/>
+  <g mask="url(#gold-mask)">
+    <rect class="shimmer" x="-120" y="-120" width="480" height="480" fill="url(#warm-light)"/>
+  </g>
+  <!-- The airy rachis follows the lower-left arc without closing the wreath. -->
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <path d="M132 213C106 211 79 195 64 169C47 140 47 103 63 68" stroke="#33482b" stroke-width="1.05"/>
+    <path d="M130 213C101 204 80 184 71 162" stroke="#4c623f" stroke-width=".55"/>
+    <g color="#4c623f">
+      <g transform="translate(59 80) rotate(47) scale(.48)"><use class="frond late" href="#pinna"/></g>
+      <g transform="translate(54 95) rotate(33) scale(.66)"><use class="frond" href="#pinna"/></g>
+      <g transform="translate(51 112) rotate(18) scale(.83)"><use class="frond late" href="#pinna"/></g>
+      <g transform="translate(52 131) rotate(1) scale(.93)"><use class="frond" href="#pinna"/></g>
+      <g transform="translate(57 151) rotate(-17) scale(.95)"><use class="frond late" href="#pinna"/></g>
+      <g transform="translate(66 171) rotate(-33) scale(.88)"><use class="frond" href="#pinna"/></g>
+      <g transform="translate(80 190) rotate(-49) scale(.73)"><use class="frond late" href="#pinna"/></g>
+      <g transform="translate(99 204) rotate(-64) scale(.55)"><use class="frond" href="#pinna"/></g>
+    </g>
+    <g color="#33482b">
+      <g transform="translate(57 86) rotate(-10) scale(-.43 .43)"><use class="frond reverse" href="#pinna"/></g>
+      <g transform="translate(52 103) rotate(-23) scale(-.56 .56)"><use class="frond reverse" href="#pinna"/></g>
+      <g transform="translate(51 122) rotate(-36) scale(-.64 .64)"><use class="frond reverse" href="#pinna"/></g>
+      <g transform="translate(54 141) rotate(-48) scale(-.66 .66)"><use class="frond reverse" href="#pinna"/></g>
+      <g transform="translate(61 161) rotate(-63) scale(-.66 .66)"><use class="frond reverse" href="#pinna"/></g>
+      <g transform="translate(72 181) rotate(-79) scale(-.58 .58)"><use class="frond reverse" href="#pinna"/></g>
+      <g transform="translate(89 198) rotate(-99) scale(-.45 .45)"><use class="frond reverse" href="#pinna"/></g>
+      <g transform="translate(109 208) rotate(-113) scale(-.32 .32)"><use class="frond reverse" href="#pinna"/></g>
+    </g>
+    <path d="M63 68Q59 75 58 80Q65 75 63 68Z" fill="#4c623f"/>
+  </g>
+</svg>
