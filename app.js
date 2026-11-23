@@ -2056,17 +2056,25 @@
 
       if (currentInvite) {
         var max = getMaxAllowedGuests();
+        var cleanFam = String(currentInvite.familyName || '').trim();
+        var hasGroupWord = /\b(fam[ií]lia|casal|grupo)\b|\be\b/i.test(cleanFam);
+        var heroBadgeLabel = !cleanFam
+          ? 'Convite especial'
+          : max > 1 && !hasGroupWord
+            ? 'Convite para ' + cleanFam + ' e família'
+            : 'Convite para ' + cleanFam;
         var guestsCopy = max === 1
-          ? 'Convite individual (1 lugar reservado)'
+          ? 'Convite individual'
           : 'Até ' + max + ' lugares reservados com carinho';
         var bannerCopy = max === 1
           ? 'Preparamos este convite especialmente para você.'
           : 'Preparamos este convite com muito carinho para até ' + max + ' pessoas.';
         metaEl.hidden = false;
-        metaEl.textContent = (currentInvite.familyName ? currentInvite.familyName + ' · ' : '') + guestsCopy;
+        metaEl.textContent = (cleanFam ? cleanFam + ' · ' : '') + guestsCopy;
         badgeEl.hidden = false;
-        byId('invite-badge-family').textContent = currentInvite.familyName ? 'Convite para ' + currentInvite.familyName : 'Convite especial';
-        byId('invite-badge-limit').textContent = '· ' + (max === 1 ? '1 lugar reservado' : 'Até ' + max + ' lugares');
+        byId('invite-badge-family').textContent = heroBadgeLabel;
+        byId('invite-badge-limit').textContent = '';
+        byId('invite-badge-limit').hidden = true;
         if (seatsBanner) {
           seatsBanner.hidden = false;
           seatsBanner.textContent = bannerCopy;
@@ -2077,8 +2085,11 @@
         }
         var hasAnswered = currentInvite.status === 'yes' || currentInvite.status === 'no';
         resumePill.hidden = !hasAnswered;
+        if (byId('rsvp-resume-text')) {
+          byId('rsvp-resume-text').textContent = 'Sua resposta já foi enviada';
+        }
         all('[data-rsvp-cta-label]').forEach(function (el) {
-          el.textContent = hasAnswered ? 'Consultar ou alterar resposta' : 'Confirmar presença';
+          el.textContent = hasAnswered ? 'Alterar resposta' : 'Confirmar presença';
         });
       } else {
         metaEl.hidden = true;
