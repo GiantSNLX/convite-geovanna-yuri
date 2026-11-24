@@ -84,6 +84,12 @@ export function createWorkerHandler() {
         return new Response('Assets binding indisponível.', { status: 404 });
       }
 
+      if (url.pathname === '/') {
+        const rewritten = new URL(url.toString());
+        rewritten.pathname = '/index.html';
+        return env.ASSETS.fetch(new Request(rewritten.toString(), request));
+      }
+
       if (url.pathname === '/admin' || url.pathname === '/admin/') {
         const rewritten = new URL(url.toString());
         rewritten.pathname = '/admin.html';

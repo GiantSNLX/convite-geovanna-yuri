@@ -441,6 +441,10 @@ test('Cloudflare Worker + D1 adapter handles healthz, /admin, .ics, login, invit
     assert.equal(adminPage.status, 200);
     assert.match(await adminPage.text(), /Painel dos Noivos/);
 
+    const homePage = await worker.fetch(new Request('https://casamento.yuritanaka.com.br/'), env);
+    assert.equal(homePage.status, 200);
+    assert.match(await homePage.text(), /Geovanna/);
+
     const ics = await worker.fetch(new Request('https://casamento.yuritanaka.com.br/casamento-yuri-geovanna.ics'), env);
     assert.equal(ics.status, 200);
     assert.equal(ics.headers.get('content-type'), 'text/calendar; charset=utf-8');

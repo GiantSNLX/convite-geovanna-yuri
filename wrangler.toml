@@ -6,7 +6,9 @@ workers_dev = true
 [assets]
 directory = "_site"
 binding = "ASSETS"
+html_handling = "none"
 run_worker_first = [
+  "/",
   "/api/*",
   "/admin",
   "/admin/",
@@ -20,5 +22,5 @@ command = "node scripts/build-static.mjs"
 [[d1_databases]]
 binding = "DB"
 database_name = "convite-geovanna-yuri"
-database_id = "PREENCHER_COM_ID_DO_D1"
+database_id = "b92f1dc4-990e-4971-bb39-7f79969ed063"
 migrations_dir = "cloudflare/migrations"
