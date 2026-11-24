@@ -43,6 +43,15 @@ export function createPreviewServer(root = projectRoot, options = {}) {
     };
     try {
       const url = new URL(request.url, 'http://' + (request.headers.host || '127.0.0.1'));
+      if (url.pathname === '/healthz' && ['GET', 'HEAD'].includes(request.method)) {
+        const payload = JSON.stringify({ ok: true });
+        response.writeHead(200, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Content-Length': Buffer.byteLength(payload)
+        });
+        response.end(request.method === 'HEAD' ? undefined : payload);
+        return;
+      }
       if (url.pathname.startsWith('/api/')) {
         if (!store) {
           store = createGuestbookStore(options.databasePath || process.env.GUESTBOOK_DB_PATH || path.join(root, '.data', 'messages.sqlite'));
@@ -132,7 +141,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
       console.error('Não foi possível iniciar a prévia:', error.message);
       process.exitCode = 1;
     });
-    const host = process.env.HOST || '127.0.0.1';
+    const host = process.env.HOST || (process.env.PORT ? '0.0.0.0' : '127.0.0.1');
     server.listen(port, host, () => console.log(`Convite "Nossa história, nossa jornada" disponível em http://${host}:${server.address().port} (Painel: http://${host}:${server.address().port}/admin)`));
     const stop = () => server.close();
     process.on('SIGINT', stop);

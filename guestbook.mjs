@@ -676,7 +676,8 @@ async function readJsonBody(request, maxBytes = 16384) {
 export function createGuestbookApi(store, options = {}) {
   const allowedOrigin = options.allowedOrigin || '';
   const adminPassword = String(options.adminPassword || process.env.ADMIN_PASSWORD || 'yuri-geovanna-2027');
-  const sessionSecret = randomBytes(32);
+  const rawSecret = options.sessionSecret || process.env.SESSION_SECRET || '';
+  const sessionSecret = rawSecret ? Buffer.from(String(rawSecret), 'utf8') : randomBytes(32);
   const attempts = new Map();
 
   function signAdminToken() {
@@ -735,10 +736,13 @@ export function createGuestbookApi(store, options = {}) {
 
     const origin = request.headers.origin;
     const ownOrigin = url.origin;
+    const forwardedHost = String(request.headers['x-forwarded-host'] || '').split(',')[0].trim();
     let sameHostOrigin = false;
     try {
       const parsed = new URL(origin);
-      sameHostOrigin = ['http:', 'https:'].includes(parsed.protocol) && parsed.host === url.host;
+      sameHostOrigin =
+        ['http:', 'https:'].includes(parsed.protocol) &&
+        (parsed.host === url.host || (forwardedHost && parsed.host === forwardedHost));
     } catch {
       /* Origin ausente ou inválida. */
     }
@@ -778,6 +782,10 @@ export function createGuestbookApi(store, options = {}) {
 
     // ---------------------------------------------------------------- Admin endpoints: /api/admin/*
     if (isAdminApi) {
+      const forwardedProto = String(request.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase();
+      const isHttps = Boolean(request.socket.encrypted || forwardedProto === 'https');
+      const secureFlag = isHttps ? '; Secure' : '';
+
       if (pathname === '/api/admin/login' && request.method === 'POST') {
         try {
           const body = await readJsonBody(request, 4096);
@@ -789,7 +797,7 @@ export function createGuestbookApi(store, options = {}) {
           json(
             200,
             { authenticated: true, token },
-            { 'Set-Cookie': `wedding_admin_session=${token}; HttpOnly; Path=/; SameSite=Strict; Max-Age=43200` }
+            { 'Set-Cookie': `wedding_admin_session=${token}; HttpOnly; Path=/; SameSite=Strict${secureFlag}; Max-Age=43200` }
           );
         } catch (error) {
           json(error.status || 400, { error: error.message });
@@ -801,7 +809,7 @@ export function createGuestbookApi(store, options = {}) {
         json(
           200,
           { authenticated: false },
-          { 'Set-Cookie': 'wedding_admin_session=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0' }
+          { 'Set-Cookie': `wedding_admin_session=; HttpOnly; Path=/; SameSite=Strict${secureFlag}; Max-Age=0` }
         );
         return true;
       }
@@ -952,7 +960,8 @@ export function createGuestbookApi(store, options = {}) {
     }
     const now = Date.now();
     for (const [key, value] of attempts) if (value.expires < now) attempts.delete(key);
-    const address = request.socket.remoteAddress || 'local';
+    const forwardedIp = String(request.headers['x-forwarded-for'] || '').split(',')[0].trim();
+    const address = forwardedIp || request.socket.remoteAddress || 'local';
     const limit = attempts.get(address) || { count: 0, expires: now + 60000 };
     if (limit.count >= 12) {
       response.setHeader('Retry-After', String(Math.ceil((limit.expires - now) / 1000)));

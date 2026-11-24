@@ -240,6 +240,10 @@ test('Preview server serves invitation, admin panel, .ics inline, moderates mess
     assert.equal(home.status, 200);
     assert.match(home.text(), /Geovanna &amp; Yuri|Geovanna & Yuri/);
 
+    const health = await dispatchRequest(server, { url: '/healthz' });
+    assert.equal(health.status, 200);
+    assert.equal(health.json().ok, true);
+
     const adminPage = await dispatchRequest(server, { url: '/admin' });
     assert.equal(adminPage.status, 200);
     assert.match(adminPage.text(), /Painel dos Noivos/);
@@ -251,23 +255,27 @@ test('Preview server serves invitation, admin panel, .ics inline, moderates mess
 
     const blockedDocs = await dispatchRequest(server, { url: '/docs/geracao-imagens.json' });
     assert.equal(blockedDocs.status, 404);
+    const blockedDocker = await dispatchRequest(server, { url: '/Dockerfile' });
+    assert.equal(blockedDocker.status, 404);
 
     // Rota admin sem login retorna 401
     const unauthOverview = await dispatchRequest(server, { url: '/api/admin/overview' });
     assert.equal(unauthOverview.status, 401);
 
-    // Login no painel dos noivos
+    // Login no painel dos noivos (incluindo detecção HTTPS atrás de proxy)
     const loginBody = JSON.stringify({ password: 'test-secret-password' });
     const loginRes = await dispatchRequest(server, {
       method: 'POST',
       url: '/api/admin/login',
       headers: {
         'content-type': 'application/json',
-        'content-length': String(Buffer.byteLength(loginBody))
+        'content-length': String(Buffer.byteLength(loginBody)),
+        'x-forwarded-proto': 'https'
       },
       body: loginBody
     });
     assert.equal(loginRes.status, 200);
+    assert.match(String(loginRes.headers['set-cookie'] || ''), /;\s*Secure\b/);
     const { token } = loginRes.json();
     const authHeaders = { authorization: `Bearer ${token}` };
 

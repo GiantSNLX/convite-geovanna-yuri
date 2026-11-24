@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: convite-geovanna-yuri
+    runtime: docker
+    plan: starter
+    healthCheckPath: /healthz
+    disk:
+      name: convite-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 4173
+      - key: GUESTBOOK_DB_PATH
+        value: /data/messages.sqlite
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ADMIN_PASSWORD
+        sync: false

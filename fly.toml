@@ -1,0 +1,32 @@
+app = 'convite-geovanna-yuri'
+primary_region = 'gru'
+
+[build]
+  dockerfile = 'Dockerfile'
+
+[env]
+  HOST = '0.0.0.0'
+  PORT = '4173'
+  GUESTBOOK_DB_PATH = '/data/messages.sqlite'
+
+[[mounts]]
+  source = 'convite_data'
+  destination = '/data'
+
+[http_service]
+  internal_port = 4173
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = '10s'
+    interval = '30s'
+    method = 'GET'
+    timeout = '5s'
+    path = '/healthz'
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '256mb'
