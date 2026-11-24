@@ -1,40 +1,56 @@
-# Publicação completa (site + painel /admin + SQLite)
+# Publicação completa (site + painel /admin + banco SQLite)
 
-Este projeto já está preparado para rodar como aplicação completa em qualquer servidor Node >= 22.13 ou Docker (incluindo `/`, `/admin`, `/api/invite`, `/api/rsvps`, `/api/messages` e persistência em SQLite).
-
-## Variáveis de ambiente recomendadas
-
-- `ADMIN_PASSWORD`: senha de acesso ao painel `/admin` (defina uma senha forte no painel da hospedagem).
-- `SESSION_SECRET`: chave aleatória longa para manter sessões do `/admin` ativas após reinícios.
-- `GUESTBOOK_DB_PATH`: caminho do banco SQLite (no Docker, o padrão já é `/data/messages.sqlite`).
-- `HOST`: `0.0.0.0` (automático quando `PORT` está definido).
+Este projeto suporta publicação **100% na Cloudflare (Workers + Assets + banco D1)** no plano gratuito ou em qualquer servidor Node >= 22.13 / Docker.
 
 ---
 
-## Opção 1 · Railway (mais simples via GitHub + Volume)
+## Opção 1 · Cloudflare Workers + Assets + Cloudflare D1 (Recomendado, 24h grátis)
 
-1. Crie um projeto no Railway conectando o repositório `GiantSNLX/convite-geovanna-yuri` (ele detecta automaticamente o `Dockerfile` e `railway.json`).
-2. Em **Variables**, adicione:
-   - `ADMIN_PASSWORD` = sua senha dos noivos
-   - `SESSION_SECRET` = qualquer string longa aleatória
-   - `GUESTBOOK_DB_PATH` = `/data/messages.sqlite`
-3. Em **Volumes**, adicione um volume montado em `/data` (para não perder convites e confirmações ao atualizar o código).
-4. Gere o domínio público ou conecte seu domínio personalizado (ex: `casamento.yuritanaka.com.br`).
+Tudo (`/`, `/admin`, `/api/invite`, `/api/rsvps`, `/api/messages`, links `?c=` e exportação CSV) roda direto na Cloudflare usando o banco SQLite gerenciado **Cloudflare D1**.
 
-## Opção 2 · Fly.io
+### Passo a passo rápido (via terminal com `npx wrangler`)
 
-```bash
-fly launch --copy-config --no-deploy
-fly volumes create convite_data --region gru --size 1
-fly secrets set ADMIN_PASSWORD="sua-senha-forte" SESSION_SECRET="$(openssl rand -hex 32)"
-fly deploy
-```
+1. Entre na sua conta Cloudflare:
+   ```bash
+   npx wrangler login
+   ```
+2. Crie o banco **Cloudflare D1**:
+   ```bash
+   npx wrangler d1 create convite-geovanna-yuri
+   ```
+3. Copie o `database_id` retornado no comando acima e cole no arquivo `wrangler.toml` substituindo `PREENCHER_COM_ID_DO_D1`.
+4. Aplique as tabelas iniciais no D1 remoto:
+   ```bash
+   npx wrangler d1 migrations apply convite-geovanna-yuri --remote
+   ```
+   *(O Worker também cria as tabelas automaticamente na primeira requisição caso o banco ainda esteja vazio.)*
+5. Cadastre os segredos do painel `/admin`:
+   ```bash
+   npx wrangler secret put ADMIN_PASSWORD
+   npx wrangler secret put SESSION_SECRET
+   ```
+   *(Em `ADMIN_PASSWORD`, digite a senha que os noivos vão usar para entrar em `/admin`. Em `SESSION_SECRET`, informe uma frase/chave longa aleatória.)*
+6. Publique na Cloudflare:
+   ```bash
+   npx wrangler deploy
+   ```
 
-## Opção 3 · Render
+### Domínio personalizado na Cloudflare (ex: `casamento.yuritanaka.com.br`)
 
-Use o arquivo `render.yaml` (Blueprint) conectando o repositório no Render, informe `ADMIN_PASSWORD` e o serviço subirá com disco persistente em `/data`.
+1. No painel da Cloudflare, abra **Workers & Pages -> `convite-geovanna-yuri` -> Settings -> Domains & Routes -> Add -> Custom Domain**.
+2. Informe `casamento.yuritanaka.com.br` (ou `yuritanaka.com.br`) para ativar DNS e HTTPS automaticamente.
+3. Depois que o domínio estiver no ar, você pode atualizar `site.url` em `config.js` com essa URL pública.
 
-## Opção 4 · VPS própria com Docker
+---
+
+## Opção 2 · Railway / Render / Fly.io / VPS Docker
+
+Se preferir rodar o servidor Node clássico (`server.mjs`) com volume em disco:
+
+- **Variáveis de ambiente:** `ADMIN_PASSWORD`, `SESSION_SECRET`, `GUESTBOOK_DB_PATH=/data/messages.sqlite`.
+- Arquivos prontos na raiz: `Dockerfile`, `railway.json`, `render.yaml` e `fly.toml`.
+
+### Exemplo direto com Docker em VPS:
 
 ```bash
 docker build -t convite-geovanna-yuri .
@@ -47,5 +63,3 @@ docker run -d \
   -v convite_gy_data:/data \
   convite-geovanna-yuri
 ```
-
-Depois, aponte seu proxy reverso (Nginx, Caddy ou Cloudflare) para `http://127.0.0.1:4173`.

@@ -6,9 +6,11 @@ import { createRequire } from 'node:module';
 import { Readable, Writable } from 'node:stream';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DatabaseSync } from 'node:sqlite';
 import { createGuestbookStore } from '../guestbook.mjs';
 import { createPreviewServer } from '../server.mjs';
 import { buildCsv, escapeCsvCell } from '../scripts/csv.mjs';
+import { createWorkerHandler } from '../cloudflare/worker.mjs';
 
 const require = createRequire(import.meta.url);
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -360,5 +362,171 @@ test('Preview server serves invitation, admin panel, .ics inline, moderates mess
     assert.match(csvRes.text(), /Família Souza/);
   } finally {
     server.close();
+  }
+});
+
+function createInMemoryD1() {
+  const sqlite = new DatabaseSync(':memory:');
+  const wrapStmt = (sql, params = []) => {
+    const stmt = sqlite.prepare(sql);
+    return {
+      bind(...args) {
+        return wrapStmt(sql, args);
+      },
+      async first() {
+        const row = stmt.get(...params);
+        return row === undefined ? null : row;
+      },
+      async all() {
+        return { results: stmt.all(...params) };
+      },
+      async run() {
+        const info = stmt.run(...params);
+        return {
+          success: true,
+          meta: {
+            last_row_id: Number(info.lastInsertRowid || 0),
+            changes: Number(info.changes || 0)
+          }
+        };
+      }
+    };
+  };
+  return {
+    prepare(sql) {
+      return wrapStmt(sql);
+    },
+    async batch(stmts) {
+      const results = [];
+      sqlite.exec('BEGIN');
+      try {
+        for (const s of stmts) results.push(await s.run());
+        sqlite.exec('COMMIT');
+        return results;
+      } catch (err) {
+        sqlite.exec('ROLLBACK');
+        throw err;
+      }
+    },
+    close() {
+      sqlite.close();
+    }
+  };
+}
+
+test('Cloudflare Worker + D1 adapter handles healthz, /admin, .ics, login, invites, RSVP, messages and CSV export', async () => {
+  const db = createInMemoryD1();
+  const worker = createWorkerHandler();
+  const mockAssets = {
+    async fetch(req) {
+      const u = new URL(req.url);
+      if (u.pathname === '/admin.html') return new Response('<h1>Painel dos Noivos</h1>', { status: 200 });
+      if (u.pathname === '/casamento-yuri-geovanna.ics') return new Response('BEGIN:VCALENDAR\r\nEND:VCALENDAR', { status: 200 });
+      return new Response('<html>Geovanna &amp; Yuri</html>', { status: 200 });
+    }
+  };
+  const env = {
+    DB: db,
+    ASSETS: mockAssets,
+    ADMIN_PASSWORD: 'cf-secret-password',
+    SESSION_SECRET: 'cf-test-session-secret-0123456789'
+  };
+
+  try {
+    const health = await worker.fetch(new Request('https://casamento.yuritanaka.com.br/healthz'), env);
+    assert.equal(health.status, 200);
+    assert.equal((await health.json()).runtime, 'cloudflare-workers-d1');
+
+    const adminPage = await worker.fetch(new Request('https://casamento.yuritanaka.com.br/admin'), env);
+    assert.equal(adminPage.status, 200);
+    assert.match(await adminPage.text(), /Painel dos Noivos/);
+
+    const ics = await worker.fetch(new Request('https://casamento.yuritanaka.com.br/casamento-yuri-geovanna.ics'), env);
+    assert.equal(ics.status, 200);
+    assert.equal(ics.headers.get('content-type'), 'text/calendar; charset=utf-8');
+    assert.match(ics.headers.get('content-disposition') || '', /inline; filename="casamento-yuri-geovanna\.ics"/);
+
+    const login = await worker.fetch(
+      new Request('https://casamento.yuritanaka.com.br/api/admin/login', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ password: 'cf-secret-password' })
+      }),
+      env
+    );
+    assert.equal(login.status, 200);
+    assert.match(login.headers.get('set-cookie') || '', /;\s*Secure\b/);
+    const { token } = await login.json();
+    const authHeaders = { authorization: `Bearer ${token}`, 'content-type': 'application/json' };
+
+    const createInv = await worker.fetch(
+      new Request('https://casamento.yuritanaka.com.br/api/admin/invites', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ familyName: 'Família D1', maxGuests: 3, customToken: 'd1-2027' })
+      }),
+      env
+    );
+    assert.equal(createInv.status, 201);
+
+    const pubInv = await worker.fetch(new Request('https://casamento.yuritanaka.com.br/api/invite?token=d1-2027'), env);
+    assert.equal(pubInv.status, 200);
+    assert.equal((await pubInv.json()).invite.familyName, 'Família D1');
+
+    const msgRes = await worker.fetch(
+      new Request('https://casamento.yuritanaka.com.br/api/messages', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Ana D1',
+          message: 'Felicidades ao casal!',
+          requestId: '66666666-6666-4666-8666-666666666666'
+        })
+      }),
+      env
+    );
+    assert.equal(msgRes.status, 201);
+    const createdMsg = (await msgRes.json()).message;
+
+    const approve = await worker.fetch(
+      new Request(`https://casamento.yuritanaka.com.br/api/admin/messages/${createdMsg.id}/approve`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}` }
+      }),
+      env
+    );
+    assert.equal(approve.status, 200);
+
+    const mural = await worker.fetch(new Request('https://casamento.yuritanaka.com.br/api/messages'), env);
+    assert.equal((await mural.json()).messages.length, 1);
+
+    const rsvp = await worker.fetch(
+      new Request('https://casamento.yuritanaka.com.br/api/rsvps', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Roberto D1',
+          response: 'yes',
+          guests: [{ name: 'Roberto D1', ageGroup: 'adulto' }],
+          phone: '92999887766',
+          inviteToken: 'd1-2027',
+          requestId: '77777777-7777-4777-8777-777777777777'
+        })
+      }),
+      env
+    );
+    assert.equal(rsvp.status, 201);
+    assert.equal((await rsvp.json()).invite.confirmedCount, 1);
+
+    const csv = await worker.fetch(
+      new Request('https://casamento.yuritanaka.com.br/api/admin/export.csv', {
+        headers: { authorization: `Bearer ${token}` }
+      }),
+      env
+    );
+    assert.equal(csv.status, 200);
+    assert.match(await csv.text(), /Família D1/);
+  } finally {
+    db.close();
   }
 });
