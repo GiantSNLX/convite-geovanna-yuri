@@ -2,6 +2,9 @@ name = "convite-geovanna-yuri"
 main = "cloudflare/worker.mjs"
 compatibility_date = "2025-04-01"
 workers_dev = true
+routes = [
+  { pattern = "casamento.yuritanaka.com.br", custom_domain = true }
+]
 
 [assets]
 directory = "_site"
