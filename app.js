@@ -1352,7 +1352,7 @@
     byId('download-ics').addEventListener('click', function () {
       try {
         downloadIcsFile();
-        byId('calendar-status').textContent = 'Arquivo .ics baixado. Abra na sua agenda para concluir a inclusão.';
+        byId('calendar-status').textContent = 'Lembrete salvo. Abra pelo aplicativo de agenda do seu aparelho.';
       } catch (error) {
         byId('calendar-status').textContent = error.message;
       }
