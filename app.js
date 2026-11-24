@@ -1358,7 +1358,15 @@
       }
     });
 
-    var keepsakeRendered = false;
+    var lastKeepsakeKey = '';
+    function getHonoreeDisplayName() {
+      var cleanFam = currentInvite && currentInvite.familyName ? String(currentInvite.familyName).trim() : '';
+      if (!cleanFam) return 'Com carinho e gratidão';
+      var max = Number(currentInvite.maxGuests) || 1;
+      var hasGroupWord = /\b(fam[ií]lia|casal|grupo)\b|\be\b/i.test(cleanFam);
+      return max > 1 && !hasGroupWord ? cleanFam + ' e família' : cleanFam;
+    }
+
     function loadAssetImg(src) {
       return new Promise(function (resolve) {
         var img = new global.Image();
@@ -1370,7 +1378,9 @@
 
     async function renderKeepsakeCard() {
       var canvas = byId('keepsake-canvas');
-      if (!canvas || !canvas.getContext || keepsakeRendered) return;
+      if (!canvas || !canvas.getContext) return;
+      var honoree = getHonoreeDisplayName();
+      if (lastKeepsakeKey === honoree) return;
       var ctx = canvas.getContext('2d');
       var W = canvas.width;
       var H = canvas.height;
@@ -1402,52 +1412,61 @@
         ctx.restore();
       }
 
-      ctx.strokeStyle = 'rgba(166, 130, 60, 0.48)';
+      ctx.strokeStyle = 'rgba(166, 130, 60, 0.52)';
       ctx.lineWidth = 3;
-      ctx.strokeRect(48, 48, W - 96, H - 96);
+      ctx.strokeRect(46, 46, W - 92, H - 92);
+      ctx.strokeStyle = 'rgba(166, 130, 60, 0.25)';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(58, 58, W - 116, H - 116);
 
       if (monogram) {
-        ctx.drawImage(monogram, (W - 360) / 2, 128, 360, 360);
+        ctx.drawImage(monogram, (W - 340) / 2, 118, 340, 340);
       }
 
       ctx.textAlign = 'center';
       ctx.fillStyle = '#a6823c';
-      ctx.font = '600 24px "DM Sans", sans-serif';
-      ctx.fillText('SAVE THE DATE · CELEBRAR JUNTOS', W / 2, 545);
+      ctx.font = '600 22px "DM Sans", sans-serif';
+      ctx.fillText('CELEBRANDO ESSE GRANDE DIA', W / 2, 518);
 
       ctx.fillStyle = '#24321e';
-      ctx.font = '400 96px "Bodoni Moda", Georgia, serif';
-      ctx.fillText('Geovanna', W / 2, 668);
-      ctx.font = 'italic 400 72px "Bodoni Moda", Georgia, serif';
+      ctx.font = '400 92px "Bodoni Moda", Georgia, serif';
+      ctx.fillText('Geovanna', W / 2, 634);
+      ctx.font = 'italic 400 70px "Bodoni Moda", Georgia, serif';
       ctx.fillStyle = '#a6823c';
-      ctx.fillText('&', W / 2 - 142, 766);
-      ctx.font = '400 96px "Bodoni Moda", Georgia, serif';
+      ctx.fillText('&', W / 2 - 140, 730);
+      ctx.font = '400 92px "Bodoni Moda", Georgia, serif';
       ctx.fillStyle = '#24321e';
-      ctx.fillText('Yuri', W / 2 + 44, 770);
+      ctx.fillText('Yuri', W / 2 + 44, 734);
 
       ctx.strokeStyle = '#c9b382';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(W / 2 - 90, 835);
-      ctx.lineTo(W / 2 + 90, 835);
+      ctx.moveTo(W / 2 - 95, 796);
+      ctx.lineTo(W / 2 + 95, 796);
       ctx.stroke();
 
-      ctx.fillStyle = '#24321e';
-      ctx.font = '600 40px "Bodoni Moda", Georgia, serif';
-      ctx.fillText('13 de janeiro de 2027 · às 19h', W / 2, 912);
-
-      ctx.fillStyle = '#5f6755';
-      ctx.font = '500 28px "DM Sans", sans-serif';
-      ctx.fillText('Casa Colonial · Manaus, AM', W / 2, 965);
+      var fontPx = 56;
+      ctx.font = 'italic 600 ' + fontPx + 'px "Bodoni Moda", Georgia, serif';
+      while (ctx.measureText(honoree).width > W - 210 && fontPx > 32) {
+        fontPx -= 2;
+        ctx.font = 'italic 600 ' + fontPx + 'px "Bodoni Moda", Georgia, serif';
+      }
+      var goldGrad = ctx.createLinearGradient(W * 0.2, 870, W * 0.8, 935);
+      goldGrad.addColorStop(0, '#8f6c28');
+      goldGrad.addColorStop(0.5, '#c29944');
+      goldGrad.addColorStop(1, '#8c6925');
+      ctx.fillStyle = goldGrad;
+      ctx.fillText(honoree, W / 2, 910);
 
       ctx.fillStyle = '#405638';
-      ctx.font = 'italic 400 32px "Bodoni Moda", Georgia, serif';
-      ctx.fillText('Contando os dias para celebrar esse sim!', W / 2, 1090);
+      ctx.font = '400 30px "Bodoni Moda", Georgia, serif';
+      ctx.fillText('Com o coração cheio de alegria,', W / 2, 998);
+      ctx.fillText('fazendo parte dessa história de amor.', W / 2, 1044);
 
       ctx.fillStyle = '#a6823c';
       ctx.font = '600 20px "DM Sans", sans-serif';
-      ctx.fillText('COM AMOR · GEOVANNA & YURI', W / 2, 1215);
-      keepsakeRendered = true;
+      ctx.fillText('COM CARINHO · GEOVANNA & YURI', W / 2, 1212);
+      lastKeepsakeKey = honoree;
     }
 
     function getKeepsakeBlob() {
