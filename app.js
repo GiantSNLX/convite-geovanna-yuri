@@ -1426,17 +1426,21 @@
       ctx.textAlign = 'center';
       ctx.fillStyle = '#a6823c';
       ctx.font = '600 22px "DM Sans", sans-serif';
-      ctx.fillText('CELEBRANDO ESSE GRANDE DIA', W / 2, 518);
+      ctx.fillText('CELEBRANDO ESSE GRANDE DIA', W / 2, 496);
+
+      ctx.fillStyle = '#405638';
+      ctx.font = 'italic 400 34px "Bodoni Moda", Georgia, serif';
+      ctx.fillText('Casamento de', W / 2, 546);
 
       ctx.fillStyle = '#24321e';
       ctx.font = '400 92px "Bodoni Moda", Georgia, serif';
-      ctx.fillText('Geovanna', W / 2, 634);
+      ctx.fillText('Geovanna', W / 2, 646);
       ctx.font = 'italic 400 70px "Bodoni Moda", Georgia, serif';
       ctx.fillStyle = '#a6823c';
-      ctx.fillText('&', W / 2 - 140, 730);
+      ctx.fillText('&', W / 2 - 140, 740);
       ctx.font = '400 92px "Bodoni Moda", Georgia, serif';
       ctx.fillStyle = '#24321e';
-      ctx.fillText('Yuri', W / 2 + 44, 734);
+      ctx.fillText('Yuri', W / 2 + 44, 744);
 
       ctx.strokeStyle = '#c9b382';
       ctx.lineWidth = 2;
@@ -2076,12 +2080,7 @@
       if (currentInvite) {
         var max = getMaxAllowedGuests();
         var cleanFam = String(currentInvite.familyName || '').trim();
-        var hasGroupWord = /\b(fam[ií]lia|casal|grupo)\b|\be\b/i.test(cleanFam);
-        var heroBadgeLabel = !cleanFam
-          ? 'Convite especial'
-          : max > 1 && !hasGroupWord
-            ? 'Convite para ' + cleanFam + ' e família'
-            : 'Convite para ' + cleanFam;
+        var honoreeName = getHonoreeDisplayName();
         var guestsCopy = max === 1
           ? 'Convite individual'
           : 'Até ' + max + ' lugares reservados com carinho';
@@ -2091,7 +2090,7 @@
         metaEl.hidden = false;
         metaEl.textContent = (cleanFam ? cleanFam + ' · ' : '') + guestsCopy;
         badgeEl.hidden = false;
-        byId('invite-badge-family').textContent = heroBadgeLabel;
+        byId('invite-badge-family').textContent = honoreeName;
         byId('invite-badge-limit').textContent = '';
         byId('invite-badge-limit').hidden = true;
         if (seatsBanner) {
