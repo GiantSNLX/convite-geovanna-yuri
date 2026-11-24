@@ -1426,11 +1426,11 @@
       ctx.textAlign = 'center';
       ctx.fillStyle = '#a6823c';
       ctx.font = '600 22px "DM Sans", sans-serif';
-      ctx.fillText('CELEBRANDO ESSE GRANDE DIA', W / 2, 496);
+      ctx.fillText('CELEBRAREMOS ESSE GRANDE DIA', W / 2, 488);
 
       ctx.fillStyle = '#405638';
       ctx.font = 'italic 400 34px "Bodoni Moda", Georgia, serif';
-      ctx.fillText('Casamento de', W / 2, 546);
+      ctx.fillText('Casamento de', W / 2, 562);
 
       ctx.fillStyle = '#24321e';
       ctx.font = '400 92px "Bodoni Moda", Georgia, serif';
