@@ -339,17 +339,118 @@
       font-size: 13px;
       color: var(--muted);
     }
+    dialog#admin-whatsapp-dialog {
+      width: min(880px, calc(100% - 28px));
+    }
+    dialog#admin-whatsapp-dialog .dialog-body h2 {
+      font-size: clamp(28px, 3vw, 34px);
+      margin-bottom: 10px;
+    }
+    dialog#admin-whatsapp-dialog .form-field {
+      margin: 10px 0;
+    }
+    .whatsapp-kit-grid {
+      display: grid;
+      grid-template-columns: 270px minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+      margin-top: 6px;
+    }
+    .whatsapp-preview-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .whatsapp-preview-frame {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+    .whatsapp-preview-frame canvas {
+      width: min(100%, 265px);
+      height: auto;
+      border-radius: 10px;
+      border: 1px solid var(--line-strong);
+      box-shadow: 0 14px 34px rgba(36, 50, 30, 0.14);
+      background: #f8f4ec;
+    }
+    .whatsapp-preview-note {
+      font-size: 12.5px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.45;
+      margin: 0;
+    }
+    .whatsapp-label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+    .whatsapp-label-row label {
+      margin-bottom: 0;
+    }
+    .whatsapp-url-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 7px 11px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+    .whatsapp-url-bar code {
+      color: var(--ink);
+      word-break: break-all;
+    }
+    .whatsapp-btn-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .whatsapp-btn-grid .button-span-2 {
+      grid-column: 1 / -1;
+    }
+    .whatsapp-btn-grid:has(#whatsapp-native-share-btn[hidden]) #whatsapp-open-btn {
+      grid-column: 1 / -1;
+    }
+    .whatsapp-btn-grid .button {
+      width: 100%;
+      justify-content: center;
+      min-height: 40px;
+      font-size: 13.5px;
+      padding: 8px 12px;
+    }
+    .whatsapp-helper-tip {
+      margin: 12px 0 0;
+      font-size: 12.5px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
     @media (max-width: 1020px) {
       .metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
     @media (max-width: 820px) {
       .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .create-invite-form { grid-template-columns: 1fr; }
+      .whatsapp-kit-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 520px) {
       .metrics-grid { grid-template-columns: 1fr; }
+      .whatsapp-btn-grid { grid-template-columns: 1fr; }
+      .whatsapp-btn-grid .button-span-2 { grid-column: auto; }
     }
   </style>
+  <script src="./config.js" defer></script>
   <script src="./admin.js" defer></script>
 </head>
 <body>
@@ -536,10 +637,71 @@
         </div>
         <div class="dialog-actions-stack">
           <button class="button button-full" type="submit">Salvar alterações</button>
+          <button id="edit-open-whatsapp-btn" class="button button-outline button-full" type="button">Preparar envio no WhatsApp</button>
         </div>
         <p id="admin-edit-status" class="form-status" role="status" aria-live="polite"></p>
       </form>
       <div id="admin-invite-history" class="history-list"></div>
+    </div>
+  </dialog>
+
+  <!-- Modal para gerar imagem sem spoiler + texto + abrir no WhatsApp -->
+  <dialog id="admin-whatsapp-dialog" aria-labelledby="admin-whatsapp-dialog-title">
+    <div class="dialog-header">
+      <div class="dialog-title-group">
+        <p class="section-tag">Envio personalizado no WhatsApp</p>
+        <p class="invite-dialog-meta" id="whatsapp-invite-meta"></p>
+      </div>
+      <button class="icon-button" type="button" data-close-whatsapp-dialog aria-label="Fechar envio no WhatsApp">
+        <img class="icon" src="./assets/icons/x.svg" alt="">
+      </button>
+    </div>
+    <div class="dialog-body">
+      <h2 id="admin-whatsapp-dialog-title">Convite para <em>WhatsApp.</em></h2>
+      <div class="whatsapp-kit-grid">
+        <div class="whatsapp-preview-col">
+          <div class="whatsapp-preview-frame">
+            <canvas id="admin-whatsapp-canvas" width="1080" height="1350" aria-label="Prévia da imagem do convite para WhatsApp"></canvas>
+          </div>
+          <p class="whatsapp-preview-note">Arte fechada, sem spoilers de data, horário ou local. O convidado descobre tudo ao abrir o site.</p>
+        </div>
+        <div>
+          <div id="whatsapp-url-bar" class="whatsapp-url-bar" hidden>
+            <span>Link no texto: <code id="whatsapp-url-preview"></code></span>
+            <button id="whatsapp-toggle-public-url" class="button button-outline button-small" type="button">Usar URL publicada</button>
+          </div>
+          <div class="form-field" style="margin-top: 0;">
+            <label for="whatsapp-recipient-phone">Número do convidado no WhatsApp (opcional)</label>
+            <input id="whatsapp-recipient-phone" type="tel" maxlength="30" placeholder="(92) 99999-9999 · vazio abre a lista de contatos">
+          </div>
+          <div class="form-field">
+            <div class="whatsapp-label-row">
+              <label for="whatsapp-message-text">Texto com instruções e link do site</label>
+              <button id="whatsapp-reset-text" class="text-button" type="button">Restaurar texto</button>
+            </div>
+            <textarea id="whatsapp-message-text" rows="8"></textarea>
+          </div>
+          <div class="whatsapp-btn-grid">
+            <button id="whatsapp-open-btn" class="button" type="button">
+              <img class="icon" src="./assets/icons/arrow-up-right.svg" alt=""> Abrir no WhatsApp
+            </button>
+            <button id="whatsapp-native-share-btn" class="button" type="button" hidden>
+              <img class="icon" src="./assets/icons/share-2.svg" alt=""> Compartilhar tudo
+            </button>
+            <button id="whatsapp-copy-image-btn" class="button button-outline" type="button">
+              <img class="icon" src="./assets/icons/copy.svg" alt=""> Copiar imagem
+            </button>
+            <button id="whatsapp-copy-text-btn" class="button button-outline" type="button">
+              <img class="icon" src="./assets/icons/copy.svg" alt=""> Copiar texto
+            </button>
+            <button id="whatsapp-download-image-btn" class="button button-outline button-span-2" type="button">
+              Baixar imagem (PNG)
+            </button>
+          </div>
+          <p id="whatsapp-kit-status" class="form-status" role="status" aria-live="polite"></p>
+          <p class="whatsapp-helper-tip">No computador: clique em <strong>Copiar imagem</strong> (cole no WhatsApp com Ctrl+V) e depois em <strong>Abrir no WhatsApp</strong> para enviar com o texto pronto.</p>
+        </div>
+      </div>
     </div>
   </dialog>
 

@@ -11,6 +11,10 @@
   var inviteSearchQuery = '';
   var cachedInvites = [];
   var cachedMessages = [];
+  var currentEditingInvite = null;
+  var currentWhatsappInvite = null;
+  var usePublicSiteUrl = false;
+  var lastWhatsappCanvasKey = '';
 
   function toast(msg) {
     global.clearTimeout(toastTimer);
@@ -55,10 +59,302 @@
     return ok;
   }
 
-  function buildInviteLink(inviteOrToken) {
+  function isLocalOrigin() {
+    var origin = (global.location && global.location.origin) || '';
+    return /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0)(:\d+)?$/i.test(origin);
+  }
+
+  function getConfiguredPublicUrl() {
+    var cfg = global.WEDDING_CONFIG && global.WEDDING_CONFIG.site && global.WEDDING_CONFIG.site.url
+      ? String(global.WEDDING_CONFIG.site.url).trim()
+      : '';
+    return cfg ? cfg.replace(/\/+$/, '') + '/' : '';
+  }
+
+  function buildInviteLink(inviteOrToken, preferPublic) {
     var token = inviteOrToken && typeof inviteOrToken === 'object' ? inviteOrToken.token : inviteOrToken;
-    var base = global.location.origin + '/';
+    var base = '';
+    if (preferPublic) {
+      base = getConfiguredPublicUrl();
+    }
+    if (!base) {
+      var origin = (global.location && global.location.origin && global.location.origin !== 'null')
+        ? global.location.origin.replace(/\/+$/, '') + '/'
+        : '';
+      base = origin || getConfiguredPublicUrl() || '/';
+    }
     return base + '?c=' + encodeURIComponent(token || '');
+  }
+
+  function formatHonoreeDisplayName(inv) {
+    var cleanFam = inv && inv.familyName ? String(inv.familyName).trim() : '';
+    if (!cleanFam) return 'Convidado especial';
+    var max = Number(inv.maxGuests) || 1;
+    var hasGroupWord = /\b(fam[ií]lia|casal|grupo)\b|\be\b/i.test(cleanFam);
+    return max > 1 && !hasGroupWord ? cleanFam + ' e família' : cleanFam;
+  }
+
+  function slugifyFileName(text) {
+    var s = String(text || 'convite').trim();
+    if (s.normalize) s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'convite';
+  }
+
+  function buildWhatsappMessage(inv, preferPublic) {
+    var honoree = formatHonoreeDisplayName(inv);
+    var max = Number(inv && inv.maxGuests) || 1;
+    var seatLabel = max === 1
+      ? '1 pessoa (convite individual)'
+      : max + ' pessoas (' + max + ' senhas para a família)';
+    var link = buildInviteLink(inv, preferPublic);
+    return [
+      'Olá, *' + honoree + '*!',
+      '',
+      'Preparamos algo muito especial e guardamos este convite com carinho para vocês. É de *Geovanna & Yuri*!',
+      '',
+      '*Como abrir o seu convite:*',
+      '1. Toque no link exclusivo abaixo',
+      '2. Ative o som e clique na tela para abrir o envelope',
+      '3. Ao final, clique em *"Confirmar presença"* (este link já está reservado para *' + seatLabel + '*)',
+      '',
+      '*Acesse seu convite pelo site:*',
+      link,
+      '',
+      'Com carinho,',
+      '*Geovanna & Yuri*'
+    ].join('\n');
+  }
+
+  function normalizeWhatsappDigits(phone) {
+    var digits = String(phone || '').replace(/\D+/g, '');
+    if (!digits) return '';
+    if ((digits.length === 10 || digits.length === 11) && digits.slice(0, 2) !== '55') {
+      digits = '55' + digits;
+    }
+    return digits;
+  }
+
+  function buildWhatsappUrl(phone, text) {
+    var digits = normalizeWhatsappDigits(phone);
+    var base = digits ? 'https://wa.me/' + digits : 'https://api.whatsapp.com/send';
+    return base + '?text=' + encodeURIComponent(text || '');
+  }
+
+  function loadAssetImage(src) {
+    return new Promise(function (resolve) {
+      var img = new global.Image();
+      img.onload = function () { resolve(img); };
+      img.onerror = function () { resolve(null); };
+      img.src = src;
+    });
+  }
+
+  function drawRoundedRectPath(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  async function renderWhatsappTeaserCard(inv) {
+    var canvas = byId('admin-whatsapp-canvas');
+    if (!canvas || !canvas.getContext) return;
+    var honoree = formatHonoreeDisplayName(inv);
+    if (lastWhatsappCanvasKey === honoree) return;
+    if (document.fonts && document.fonts.ready) {
+      try { await document.fonts.ready; } catch (_) {}
+    }
+
+    var ctx = canvas.getContext('2d');
+    var W = canvas.width;
+    var H = canvas.height;
+
+    ctx.fillStyle = '#f8f4ec';
+    ctx.fillRect(0, 0, W, H);
+    var grad = ctx.createRadialGradient(W / 2, H * 0.44, 80, W / 2, H * 0.5, W * 0.72);
+    grad.addColorStop(0, '#fffdf9');
+    grad.addColorStop(1, '#efe7d6');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    var imgs = await Promise.all([
+      loadAssetImage('./assets/art/floral-v4.webp'),
+      loadAssetImage('./assets/art/wax-seal-gold.png')
+    ]);
+    var floral = imgs[0];
+    var seal = imgs[1];
+
+    if (floral) {
+      ctx.save();
+      ctx.globalAlpha = 0.52;
+      ctx.drawImage(floral, -80, H - 440, 520, 520);
+      ctx.save();
+      ctx.translate(W + 80, 440);
+      ctx.scale(-1, -1);
+      ctx.drawImage(floral, 0, 0, 520, 520);
+      ctx.restore();
+      ctx.restore();
+    }
+
+    ctx.strokeStyle = 'rgba(166, 130, 60, 0.52)';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(46, 46, W - 92, H - 92);
+    ctx.strokeStyle = 'rgba(166, 130, 60, 0.25)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(58, 58, W - 116, H - 116);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#a6823c';
+    ctx.font = '600 22px "DM Sans", sans-serif';
+    ctx.fillText('UM CONVITE ESPECIAL', W / 2, 166);
+
+    if (seal) {
+      ctx.save();
+      ctx.shadowColor = 'rgba(64, 52, 24, 0.24)';
+      ctx.shadowBlur = 28;
+      ctx.shadowOffsetY = 12;
+      ctx.drawImage(seal, (W - 296) / 2, 206, 296, 296);
+      ctx.restore();
+    }
+
+    ctx.fillStyle = '#405638';
+    ctx.font = 'italic 400 30px "Bodoni Moda", Georgia, serif';
+    ctx.fillText('Com carinho,', W / 2, 576);
+
+    ctx.fillStyle = '#24321e';
+    ctx.font = '400 54px "Bodoni Moda", Georgia, serif';
+    ctx.fillText('Geovanna & Yuri', W / 2, 636);
+
+    ctx.strokeStyle = '#c9b382';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - 90, 688);
+    ctx.lineTo(W / 2 + 90, 688);
+    ctx.stroke();
+
+    var fontPx = 62;
+    ctx.font = 'italic 600 ' + fontPx + 'px "Bodoni Moda", Georgia, serif';
+    while (ctx.measureText(honoree).width > W - 210 && fontPx > 34) {
+      fontPx -= 2;
+      ctx.font = 'italic 600 ' + fontPx + 'px "Bodoni Moda", Georgia, serif';
+    }
+    var nameWidth = ctx.measureText(honoree).width;
+
+    ctx.save();
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#5f6e5d';
+    ctx.font = '500 24px "DM Sans", sans-serif';
+    ctx.fillText('Para', Math.max(140, (W - nameWidth) / 2 - 14), 754);
+    ctx.restore();
+
+    var goldGrad = ctx.createLinearGradient(W * 0.2, 775, W * 0.8, 845);
+    goldGrad.addColorStop(0, '#8f6c28');
+    goldGrad.addColorStop(0.5, '#c29944');
+    goldGrad.addColorStop(1, '#8c6925');
+    ctx.fillStyle = goldGrad;
+    ctx.fillText(honoree, W / 2, 818);
+
+    ctx.fillStyle = '#405638';
+    ctx.font = '400 32px "Bodoni Moda", Georgia, serif';
+    ctx.fillText('Temos algo especial para compartilhar', W / 2, 924);
+    ctx.fillText('e este convite aguarda por vocês.', W / 2, 972);
+
+    ctx.save();
+    drawRoundedRectPath(ctx, (W - 560) / 2, 1038, 560, 66, 33);
+    ctx.fillStyle = '#eef3e7';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(64, 86, 56, 0.28)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.fillStyle = '#24321e';
+    ctx.font = '600 22px "DM Sans", sans-serif';
+    ctx.fillText('Toque no link da mensagem para abrir', W / 2, 1079);
+
+    ctx.fillStyle = '#a6823c';
+    ctx.font = '600 18px "DM Sans", sans-serif';
+    ctx.fillText('CONVITE PESSOAL E EXCLUSIVO', W / 2, 1212);
+
+    lastWhatsappCanvasKey = honoree;
+  }
+
+  function getWhatsappCanvasBlob() {
+    return new Promise(function (resolve) {
+      var canvas = byId('admin-whatsapp-canvas');
+      if (!canvas || !canvas.toBlob) { resolve(null); return; }
+      canvas.toBlob(function (blob) { resolve(blob); }, 'image/png');
+    });
+  }
+
+  function triggerPngDownload(blob, fileName) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    global.setTimeout(function () { URL.revokeObjectURL(url); }, 20000);
+  }
+
+  function setWhatsappKitStatus(kind, msg) {
+    var el = byId('whatsapp-kit-status');
+    if (!el) return;
+    el.className = 'form-status' + (kind ? ' is-' + kind : '');
+    el.textContent = msg || '';
+  }
+
+  function syncWhatsappUrlBar() {
+    var bar = byId('whatsapp-url-bar');
+    var preview = byId('whatsapp-url-preview');
+    var toggleBtn = byId('whatsapp-toggle-public-url');
+    if (!bar || !preview || !toggleBtn || !currentWhatsappInvite) return;
+    var showBar = isLocalOrigin() && Boolean(getConfiguredPublicUrl());
+    bar.hidden = !showBar;
+    if (showBar) {
+      preview.textContent = buildInviteLink(currentWhatsappInvite, usePublicSiteUrl);
+      toggleBtn.textContent = usePublicSiteUrl ? 'Usar URL local' : 'Usar URL publicada';
+    }
+  }
+
+  function syncNativeShareAvailability() {
+    var btn = byId('whatsapp-native-share-btn');
+    if (!btn) return;
+    var canFiles = false;
+    try {
+      if (global.navigator.share && typeof global.File === 'function' && global.navigator.canShare) {
+        var testFile = new global.File([''], 'teste.png', { type: 'image/png' });
+        canFiles = Boolean(global.navigator.canShare({ files: [testFile] }));
+      }
+    } catch (_) {
+      canFiles = false;
+    }
+    btn.hidden = !canFiles;
+  }
+
+  async function openWhatsappInviteDialog(inv) {
+    if (!inv) return;
+    currentWhatsappInvite = inv;
+    usePublicSiteUrl = false;
+    var honoree = formatHonoreeDisplayName(inv);
+    var max = Number(inv.maxGuests) || 1;
+    byId('whatsapp-invite-meta').textContent =
+      honoree + ' · ' + max + (max === 1 ? ' senha' : ' senhas') + ' · Chave ' + inv.token;
+    byId('whatsapp-recipient-phone').value = inv.phone || '';
+    byId('whatsapp-message-text').value = buildWhatsappMessage(inv, usePublicSiteUrl);
+    setWhatsappKitStatus('', '');
+    syncWhatsappUrlBar();
+    syncNativeShareAvailability();
+    byId('admin-whatsapp-dialog').showModal();
+    await renderWhatsappTeaserCard(inv);
   }
 
   function formatDate(iso) {
@@ -192,9 +488,18 @@
       var actWrap = document.createElement('div');
       actWrap.className = 'sheet-actions';
 
+      var whatsappBtn = document.createElement('button');
+      whatsappBtn.type = 'button';
+      whatsappBtn.className = 'button button-small';
+      whatsappBtn.textContent = 'WhatsApp';
+      whatsappBtn.title = 'Gerar imagem sem spoiler e enviar no WhatsApp';
+      whatsappBtn.addEventListener('click', function () {
+        openWhatsappInviteDialog(inv);
+      });
+
       var copyBtn = document.createElement('button');
       copyBtn.type = 'button';
-      copyBtn.className = 'button button-small';
+      copyBtn.className = 'button button-outline button-small';
       copyBtn.textContent = 'Copiar';
       copyBtn.title = 'Copiar link individual';
       copyBtn.addEventListener('click', async function () {
@@ -218,7 +523,7 @@
         toggleInviteActive(inv);
       });
 
-      actWrap.append(copyBtn, editBtn, toggleBtn);
+      actWrap.append(whatsappBtn, copyBtn, editBtn, toggleBtn);
       tdAct.appendChild(actWrap);
       tr.append(tdFam, tdKey, tdSeats, tdStatus, tdNames, tdPhone, tdAct);
       tbody.appendChild(tr);
@@ -335,9 +640,17 @@
       var actions = document.createElement('div');
       actions.className = 'invite-actions';
 
+      var whatsappBtn = document.createElement('button');
+      whatsappBtn.type = 'button';
+      whatsappBtn.className = 'button button-small';
+      whatsappBtn.textContent = 'Enviar no WhatsApp';
+      whatsappBtn.addEventListener('click', function () {
+        openWhatsappInviteDialog(inv);
+      });
+
       var copyBtn = document.createElement('button');
       copyBtn.type = 'button';
-      copyBtn.className = 'button button-small';
+      copyBtn.className = 'button button-outline button-small';
       copyBtn.textContent = 'Copiar link';
       copyBtn.addEventListener('click', async function () {
         var ok = await copyText(buildInviteLink(inv));
@@ -360,7 +673,7 @@
         toggleInviteActive(inv);
       });
 
-      actions.append(copyBtn, editBtn, toggleBtn);
+      actions.append(whatsappBtn, copyBtn, editBtn, toggleBtn);
       row.append(info, actions);
       container.appendChild(row);
     });
@@ -497,6 +810,7 @@
   }
 
   async function openEditInviteDialog(inv) {
+    currentEditingInvite = inv;
     byId('edit-invite-id').value = String(inv.id);
     byId('admin-edit-token-label').textContent = 'Link: ' + buildInviteLink(inv);
     byId('edit-family-name').value = inv.familyName;
@@ -534,6 +848,121 @@
       byId('admin-invite-dialog').close();
     });
   });
+
+  if (byId('edit-open-whatsapp-btn')) {
+    byId('edit-open-whatsapp-btn').addEventListener('click', function () {
+      var inv = currentEditingInvite;
+      byId('admin-invite-dialog').close();
+      if (inv) openWhatsappInviteDialog(inv);
+    });
+  }
+
+  all('[data-close-whatsapp-dialog]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      byId('admin-whatsapp-dialog').close();
+    });
+  });
+
+  if (byId('whatsapp-toggle-public-url')) {
+    byId('whatsapp-toggle-public-url').addEventListener('click', function () {
+      if (!currentWhatsappInvite) return;
+      usePublicSiteUrl = !usePublicSiteUrl;
+      byId('whatsapp-message-text').value = buildWhatsappMessage(currentWhatsappInvite, usePublicSiteUrl);
+      syncWhatsappUrlBar();
+      setWhatsappKitStatus('success', usePublicSiteUrl ? 'Link atualizado para a URL publicada.' : 'Link atualizado para este servidor local.');
+    });
+  }
+
+  if (byId('whatsapp-reset-text')) {
+    byId('whatsapp-reset-text').addEventListener('click', function () {
+      if (!currentWhatsappInvite) return;
+      byId('whatsapp-message-text').value = buildWhatsappMessage(currentWhatsappInvite, usePublicSiteUrl);
+      setWhatsappKitStatus('success', 'Texto padrão restaurado.');
+    });
+  }
+
+  if (byId('whatsapp-copy-text-btn')) {
+    byId('whatsapp-copy-text-btn').addEventListener('click', async function () {
+      var text = byId('whatsapp-message-text').value;
+      var ok = await copyText(text);
+      setWhatsappKitStatus(ok ? 'success' : 'error', ok ? 'Texto e instruções copiados! Agora cole no WhatsApp.' : 'Não foi possível copiar automaticamente.');
+      if (ok) toast('Texto copiado para colar no WhatsApp.');
+    });
+  }
+
+  if (byId('whatsapp-copy-image-btn')) {
+    byId('whatsapp-copy-image-btn').addEventListener('click', async function () {
+      if (!currentWhatsappInvite) return;
+      await renderWhatsappTeaserCard(currentWhatsappInvite);
+      var blob = await getWhatsappCanvasBlob();
+      if (!blob) return;
+      if (global.navigator.clipboard && global.navigator.clipboard.write && typeof global.ClipboardItem === 'function') {
+        try {
+          await global.navigator.clipboard.write([new global.ClipboardItem({ 'image/png': blob })]);
+          setWhatsappKitStatus('success', 'Imagem copiada! No WhatsApp Web, basta apertar Ctrl+V para colar e enviar.');
+          toast('Imagem copiada para a área de transferência.');
+          return;
+        } catch (_) {}
+      }
+      var fileName = 'convite-' + slugifyFileName(currentWhatsappInvite.familyName) + '.png';
+      triggerPngDownload(blob, fileName);
+      setWhatsappKitStatus('success', 'Imagem baixada (' + fileName + ') para anexar no WhatsApp.');
+    });
+  }
+
+  if (byId('whatsapp-download-image-btn')) {
+    byId('whatsapp-download-image-btn').addEventListener('click', async function () {
+      if (!currentWhatsappInvite) return;
+      await renderWhatsappTeaserCard(currentWhatsappInvite);
+      var blob = await getWhatsappCanvasBlob();
+      if (!blob) return;
+      var fileName = 'convite-' + slugifyFileName(currentWhatsappInvite.familyName) + '.png';
+      triggerPngDownload(blob, fileName);
+      setWhatsappKitStatus('success', 'Imagem salva: ' + fileName + '.');
+      toast('Imagem salva no aparelho.');
+    });
+  }
+
+  if (byId('whatsapp-open-btn')) {
+    byId('whatsapp-open-btn').addEventListener('click', async function () {
+      var text = byId('whatsapp-message-text').value;
+      var phone = byId('whatsapp-recipient-phone').value;
+      await copyText(text);
+      var url = buildWhatsappUrl(phone, text);
+      global.open(url, '_blank', 'noopener');
+      setWhatsappKitStatus('success', 'WhatsApp aberto com o texto pronto! Se quiser enviar a arte junto, clique em "Copiar imagem" e cole antes de enviar.');
+    });
+  }
+
+  if (byId('whatsapp-native-share-btn')) {
+    byId('whatsapp-native-share-btn').addEventListener('click', async function () {
+      if (!currentWhatsappInvite) return;
+      await renderWhatsappTeaserCard(currentWhatsappInvite);
+      var blob = await getWhatsappCanvasBlob();
+      if (!blob) return;
+      var text = byId('whatsapp-message-text').value;
+      var fileName = 'convite-' + slugifyFileName(currentWhatsappInvite.familyName) + '.png';
+      var file = typeof global.File === 'function'
+        ? new global.File([blob], fileName, { type: 'image/png' })
+        : null;
+      if (file && global.navigator.share && (!global.navigator.canShare || global.navigator.canShare({ files: [file] }))) {
+        try {
+          await global.navigator.share({
+            files: [file],
+            title: 'Convite · Geovanna & Yuri',
+            text: text
+          });
+          setWhatsappKitStatus('success', 'Compartilhado com sucesso.');
+          return;
+        } catch (err) {
+          if (err && err.name === 'AbortError') return;
+        }
+      }
+      triggerPngDownload(blob, fileName);
+      await copyText(text);
+      setWhatsappKitStatus('success', 'Imagem salva e texto copiado para enviar no WhatsApp.');
+    });
+  }
 
   byId('admin-edit-invite-form').addEventListener('submit', async function (e) {
     e.preventDefault();
@@ -594,6 +1023,7 @@
       var link = buildInviteLink(res.invite.token);
       await copyText(link);
       toast('Convite criado e link copiado: ' + res.invite.familyName);
+      openWhatsappInviteDialog(res.invite);
     } catch (err) {
       statusEl.className = 'form-status is-error';
       statusEl.textContent = err.message;
