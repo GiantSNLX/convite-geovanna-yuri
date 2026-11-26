@@ -17,12 +17,12 @@ import {
 
 const MSG_FIELDS = 'id, name, message, status, featured, created_at AS createdAt';
 const RSVP_FIELDS = 'id, name, age, response, companions, guests_json AS guestsJson, phone, email, invite_token AS inviteToken, absence_note AS absenceNote, created_at AS createdAt';
-const INVITE_FIELDS = 'id, token, family_name AS familyName, max_guests AS maxGuests, active, status, respondent_name AS respondentName, phone, confirmed_guests_json AS confirmedGuestsJson, confirmed_count AS confirmedCount, absence_note AS absenceNote, last_request_id AS lastRequestId, updated_at AS updatedAt, created_at AS createdAt';
+const INVITE_FIELDS = 'id, token, family_name AS familyName, max_guests AS maxGuests, active, status, respondent_name AS respondentName, phone, expected_guests_json AS expectedGuestsJson, confirmed_guests_json AS confirmedGuestsJson, confirmed_count AS confirmedCount, absence_note AS absenceNote, last_request_id AS lastRequestId, updated_at AS updatedAt, created_at AS createdAt';
 
 const SCHEMA_STATEMENTS = [
   "CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, request_id TEXT NOT NULL UNIQUE, name TEXT NOT NULL CHECK(length(name) BETWEEN 1 AND 80), message TEXT NOT NULL CHECK(length(message) BETWEEN 3 AND 600), status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','archived')), featured INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)",
   "CREATE TABLE IF NOT EXISTS rsvps (id INTEGER PRIMARY KEY AUTOINCREMENT, request_id TEXT NOT NULL UNIQUE, name TEXT NOT NULL CHECK(length(name) BETWEEN 1 AND 120), age INTEGER CHECK(age IS NULL OR (typeof(age) = 'integer' AND age BETWEEN 0 AND 120)), response TEXT NOT NULL CHECK(response IN ('yes','no')), companions INTEGER NOT NULL CHECK(typeof(companions) = 'integer' AND companions BETWEEN 0 AND 20), guests_json TEXT NOT NULL DEFAULT '[]', phone TEXT NOT NULL DEFAULT '', email TEXT NOT NULL DEFAULT '', invite_token TEXT NOT NULL DEFAULT '', absence_note TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL)",
-  "CREATE TABLE IF NOT EXISTS invites (id INTEGER PRIMARY KEY AUTOINCREMENT, token TEXT NOT NULL UNIQUE, family_name TEXT NOT NULL CHECK(length(family_name) BETWEEN 1 AND 120), max_guests INTEGER NOT NULL CHECK(typeof(max_guests) = 'integer' AND max_guests BETWEEN 1 AND 30), active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0, 1)), status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','yes','no')), respondent_name TEXT NOT NULL DEFAULT '', phone TEXT NOT NULL DEFAULT '', confirmed_guests_json TEXT NOT NULL DEFAULT '[]', confirmed_count INTEGER NOT NULL DEFAULT 0, absence_note TEXT NOT NULL DEFAULT '', last_request_id TEXT NOT NULL DEFAULT '', updated_at TEXT, created_at TEXT NOT NULL)",
+  "CREATE TABLE IF NOT EXISTS invites (id INTEGER PRIMARY KEY AUTOINCREMENT, token TEXT NOT NULL UNIQUE, family_name TEXT NOT NULL CHECK(length(family_name) BETWEEN 1 AND 120), max_guests INTEGER NOT NULL CHECK(typeof(max_guests) = 'integer' AND max_guests BETWEEN 1 AND 30), active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0, 1)), status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','yes','no')), respondent_name TEXT NOT NULL DEFAULT '', phone TEXT NOT NULL DEFAULT '', expected_guests_json TEXT NOT NULL DEFAULT '[]', confirmed_guests_json TEXT NOT NULL DEFAULT '[]', confirmed_count INTEGER NOT NULL DEFAULT 0, absence_note TEXT NOT NULL DEFAULT '', last_request_id TEXT NOT NULL DEFAULT '', updated_at TEXT, created_at TEXT NOT NULL)",
   "CREATE TABLE IF NOT EXISTS invite_history (id INTEGER PRIMARY KEY AUTOINCREMENT, invite_id INTEGER NOT NULL, status TEXT NOT NULL, respondent_name TEXT NOT NULL, phone TEXT NOT NULL, confirmed_guests_json TEXT NOT NULL, confirmed_count INTEGER NOT NULL, absence_note TEXT NOT NULL, source TEXT NOT NULL DEFAULT 'guest', created_at TEXT NOT NULL)"
 ];
 
@@ -35,7 +35,14 @@ async function ensureSchema(db) {
     throw err;
   }
   if (!initializedDbs.has(db)) {
-    const promise = db.batch(SCHEMA_STATEMENTS.map((sql) => db.prepare(sql))).catch((err) => {
+    const promise = (async () => {
+      await db.batch(SCHEMA_STATEMENTS.map((sql) => db.prepare(sql)));
+      try {
+        await db.prepare('SELECT expected_guests_json FROM invites LIMIT 1').first();
+      } catch {
+        await db.prepare("ALTER TABLE invites ADD COLUMN expected_guests_json TEXT NOT NULL DEFAULT '[]'").run();
+      }
+    })().catch((err) => {
       initializedDbs.delete(db);
       throw err;
     });
@@ -49,15 +56,15 @@ export function createD1Store(db) {
   return {
     async createInvite(input = {}) {
       await ensureSchema(db);
-      const { cleanName, max, initialToken } = prepareNewInvite(input);
+      const { cleanName, max, initialToken, expectedGuestsJson } = prepareNewInvite(input);
       let token = initialToken;
       while (await db.prepare(`SELECT id FROM invites WHERE lower(token) = lower(?)`).bind(token).first()) {
         token = generateShortKey();
       }
       const now = new Date().toISOString();
       const res = await db
-        .prepare("INSERT INTO invites (token,family_name,max_guests,active,status,created_at) VALUES (?,?,?,1,'pending',?)")
-        .bind(token, cleanName, max, now)
+        .prepare("INSERT INTO invites (token,family_name,max_guests,expected_guests_json,active,status,created_at) VALUES (?,?,?,?,1,'pending',?)")
+        .bind(token, cleanName, max, expectedGuestsJson, now)
         .run();
       const insertedId = res && res.meta ? res.meta.last_row_id : null;
       const row = insertedId
@@ -113,7 +120,7 @@ export function createD1Store(db) {
       const prepared = prepareAdminInvitePatch(row, patch);
       const stmts = [
         db
-          .prepare('UPDATE invites SET family_name = ?, max_guests = ?, active = ?, status = ?, respondent_name = ?, phone = ?, confirmed_guests_json = ?, confirmed_count = ?, absence_note = ?, updated_at = ? WHERE id = ?')
+          .prepare('UPDATE invites SET family_name = ?, max_guests = ?, active = ?, status = ?, respondent_name = ?, phone = ?, expected_guests_json = ?, confirmed_guests_json = ?, confirmed_count = ?, absence_note = ?, updated_at = ? WHERE id = ?')
           .bind(
             prepared.familyName,
             prepared.maxGuests,
@@ -121,6 +128,7 @@ export function createD1Store(db) {
             prepared.status,
             prepared.respondentName,
             prepared.phone,
+            prepared.expectedGuestsJson,
             prepared.confirmedGuestsJson,
             prepared.confirmedCount,
             prepared.absenceNote,

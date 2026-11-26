@@ -188,11 +188,17 @@ test('GuestbookStore handles message moderation, family invites, seat limits, up
     assert.match(store.exportInvitesForSheet()[0].confirmedNames, /Pedro Silva \(Criança 6–12\)/);
     assert.equal(store.getInviteHistory(invite.id).length, 2);
 
+    const presetInvite = store.createInvite({
+      familyName: 'Família Preset',
+      maxGuests: 3,
+      expectedGuests: ['Ana', 'Bruno', 'Carla']
+    });
+    assert.deepEqual(presetInvite.expectedGuests, ['Ana', 'Bruno', 'Carla']);
     const overview = store.getOverview();
-    assert.equal(overview.totalInvites, 1);
-    assert.equal(overview.totalInvitedPeople, 3);
+    assert.equal(overview.totalInvites, 2);
+    assert.equal(overview.totalInvitedPeople, 6);
     assert.equal(overview.confirmedPeople, 3);
-    assert.equal(overview.pendingInvites, 0);
+    assert.equal(overview.pendingInvites, 1);
 
     // Mensagem destacada aparece antes das mensagens mais recentes
     const second = store.add({

@@ -58,6 +58,7 @@ export function createGuestbookStore(filename) {
       status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','yes','no')),
       respondent_name TEXT NOT NULL DEFAULT '',
       phone TEXT NOT NULL DEFAULT '',
+      expected_guests_json TEXT NOT NULL DEFAULT '[]',
       confirmed_guests_json TEXT NOT NULL DEFAULT '[]',
       confirmed_count INTEGER NOT NULL DEFAULT 0,
       absence_note TEXT NOT NULL DEFAULT '',
@@ -101,6 +102,11 @@ export function createGuestbookStore(filename) {
     }
   }
 
+  const inviteColumns = new Set(database.prepare('PRAGMA table_info(invites)').all().map((col) => col.name));
+  if (!inviteColumns.has('expected_guests_json')) {
+    database.exec("ALTER TABLE invites ADD COLUMN expected_guests_json TEXT NOT NULL DEFAULT '[]';");
+  }
+
   const fields = 'id, name, message, status, featured, created_at AS createdAt';
   const byRequest = database.prepare(`SELECT ${fields} FROM messages WHERE request_id = ?`);
   const byIdStmt = database.prepare(`SELECT ${fields} FROM messages WHERE id = ?`);
@@ -112,21 +118,21 @@ export function createGuestbookStore(filename) {
   const rsvpByRequest = database.prepare(`SELECT ${rsvpFields} FROM rsvps WHERE request_id = ?`);
   const insertRsvp = database.prepare('INSERT INTO rsvps (request_id,name,age,response,companions,guests_json,phone,email,invite_token,absence_note,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
 
-  const inviteFields = 'id, token, family_name AS familyName, max_guests AS maxGuests, active, status, respondent_name AS respondentName, phone, confirmed_guests_json AS confirmedGuestsJson, confirmed_count AS confirmedCount, absence_note AS absenceNote, last_request_id AS lastRequestId, updated_at AS updatedAt, created_at AS createdAt';
+  const inviteFields = 'id, token, family_name AS familyName, max_guests AS maxGuests, active, status, respondent_name AS respondentName, phone, expected_guests_json AS expectedGuestsJson, confirmed_guests_json AS confirmedGuestsJson, confirmed_count AS confirmedCount, absence_note AS absenceNote, last_request_id AS lastRequestId, updated_at AS updatedAt, created_at AS createdAt';
   const inviteByTokenStmt = database.prepare(`SELECT ${inviteFields} FROM invites WHERE lower(token) = lower(?)`);
   const inviteByIdStmt = database.prepare(`SELECT ${inviteFields} FROM invites WHERE id = ?`);
-  const insertInviteStmt = database.prepare('INSERT INTO invites (token,family_name,max_guests,active,status,created_at) VALUES (?,?,?,1,\'pending\',?)');
+  const insertInviteStmt = database.prepare('INSERT INTO invites (token,family_name,max_guests,expected_guests_json,active,status,created_at) VALUES (?,?,?,?,1,\'pending\',?)');
   const insertHistoryStmt = database.prepare('INSERT INTO invite_history (invite_id,status,respondent_name,phone,confirmed_guests_json,confirmed_count,absence_note,source,created_at) VALUES (?,?,?,?,?,?,?,?,?)');
 
   return {
     createInvite(input = {}) {
-      const { cleanName, max, initialToken } = prepareNewInvite(input);
+      const { cleanName, max, initialToken, expectedGuestsJson } = prepareNewInvite(input);
       let token = initialToken;
       while (inviteByTokenStmt.get(token)) {
         token = generateShortKey();
       }
       const now = new Date().toISOString();
-      const info = insertInviteStmt.run(token, cleanName, max, now);
+      const info = insertInviteStmt.run(token, cleanName, max, expectedGuestsJson, now);
       return hydrateInvite(inviteByIdStmt.get(Number(info.lastInsertRowid)), { includePrivate: true });
     },
 
@@ -167,7 +173,7 @@ export function createGuestbookStore(filename) {
       }
       const prepared = prepareAdminInvitePatch(row, patch);
       database
-        .prepare('UPDATE invites SET family_name = ?, max_guests = ?, active = ?, status = ?, respondent_name = ?, phone = ?, confirmed_guests_json = ?, confirmed_count = ?, absence_note = ?, updated_at = ? WHERE id = ?')
+        .prepare('UPDATE invites SET family_name = ?, max_guests = ?, active = ?, status = ?, respondent_name = ?, phone = ?, expected_guests_json = ?, confirmed_guests_json = ?, confirmed_count = ?, absence_note = ?, updated_at = ? WHERE id = ?')
         .run(
           prepared.familyName,
           prepared.maxGuests,
@@ -175,6 +181,7 @@ export function createGuestbookStore(filename) {
           prepared.status,
           prepared.respondentName,
           prepared.phone,
+          prepared.expectedGuestsJson,
           prepared.confirmedGuestsJson,
           prepared.confirmedCount,
           prepared.absenceNote,

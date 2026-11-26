@@ -457,6 +457,14 @@
       var famStrong = document.createElement('strong');
       famStrong.textContent = inv.familyName;
       tdFam.appendChild(famStrong);
+      if (inv.expectedGuests && inv.expectedGuests.length) {
+        var famListEl = document.createElement('div');
+        famListEl.className = 'sheet-expected-sub';
+        famListEl.style.fontSize = '12px';
+        famListEl.style.color = 'var(--muted)';
+        famListEl.textContent = inv.expectedGuests.join(', ');
+        tdFam.appendChild(famListEl);
+      }
 
       var tdKey = document.createElement('td');
       var codeEl = document.createElement('code');
@@ -815,6 +823,9 @@
     byId('admin-edit-token-label').textContent = 'Link: ' + buildInviteLink(inv);
     byId('edit-family-name').value = inv.familyName;
     byId('edit-max-guests').value = String(inv.maxGuests);
+    if (byId('edit-expected-guests')) {
+      byId('edit-expected-guests').value = (inv.expectedGuests || []).join('\n');
+    }
     byId('edit-invite-status').value = inv.status;
     byId('edit-respondent-name').value = inv.respondentName || '';
     byId('edit-respondent-phone').value = inv.phone || '';
@@ -979,19 +990,24 @@
         var ag = tag.indexOf('adulto') !== -1 ? 'adulto' : tag.indexOf('0') !== -1 ? 'isento' : 'crianca';
         return { name: m[1].trim(), ageGroup: ag };
       });
+    var expectedLines = byId('edit-expected-guests')
+      ? byId('edit-expected-guests').value.split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean)
+      : undefined;
     try {
+      var patchBody = {
+        familyName: byId('edit-family-name').value,
+        maxGuests: Number(byId('edit-max-guests').value),
+        status: byId('edit-invite-status').value,
+        respondentName: byId('edit-respondent-name').value,
+        phone: byId('edit-respondent-phone').value,
+        confirmedGuests: guestsLines,
+        absenceNote: byId('edit-absence-note').value
+      };
+      if (expectedLines !== undefined) patchBody.expectedGuests = expectedLines;
       var res = await api('/api/admin/invites/' + id, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          familyName: byId('edit-family-name').value,
-          maxGuests: Number(byId('edit-max-guests').value),
-          status: byId('edit-invite-status').value,
-          respondentName: byId('edit-respondent-name').value,
-          phone: byId('edit-respondent-phone').value,
-          confirmedGuests: guestsLines,
-          absenceNote: byId('edit-absence-note').value
-        })
+        body: JSON.stringify(patchBody)
       });
       renderOverview(res.overview);
       await refreshDashboard();

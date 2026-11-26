@@ -203,6 +203,20 @@ export function hydrateRsvp(row) {
   };
 }
 
+export function parseExpectedGuestsInput(value, maxGuests = 30) {
+  let list = [];
+  if (Array.isArray(value)) {
+    list = value;
+  } else if (typeof value === 'string') {
+    list = value.split(/[\n,;]+/);
+  }
+  const max = Math.max(1, Math.min(30, Number(maxGuests) || 30));
+  return list
+    .map((item) => normalizeSingleLine(typeof item === 'string' ? item : item && item.name))
+    .filter((name) => name.length > 0)
+    .slice(0, max);
+}
+
 export function hydrateInvite(row, { includePrivate = false } = {}) {
   if (!row) return null;
   let confirmedGuests = [];
@@ -211,6 +225,12 @@ export function hydrateInvite(row, { includePrivate = false } = {}) {
     if (!Array.isArray(confirmedGuests)) confirmedGuests = [];
   } catch {
     confirmedGuests = [];
+  }
+  let expectedGuests = [];
+  try {
+    expectedGuests = parseExpectedGuestsInput(JSON.parse(row.expectedGuestsJson || '[]'), row.maxGuests);
+  } catch {
+    expectedGuests = [];
   }
   const base = {
     id: row.id,
@@ -221,6 +241,7 @@ export function hydrateInvite(row, { includePrivate = false } = {}) {
     status: row.status,
     respondentName: row.respondentName || '',
     phoneMask: maskPhone(row.phone || ''),
+    expectedGuests,
     confirmedGuests,
     confirmedCount: row.confirmedCount || 0,
     absenceNote: row.absenceNote || '',
@@ -255,7 +276,7 @@ export function hydrateHistoryRow(row) {
   };
 }
 
-export function prepareNewInvite({ familyName, maxGuests = 2, customToken = '' } = {}) {
+export function prepareNewInvite({ familyName, maxGuests = 2, customToken = '', expectedGuests = [] } = {}) {
   const cleanName = normalizeSingleLine(familyName);
   if (cleanName.length < 2 || cleanName.length > 120) {
     throw new Error('Informe a identificação da família ou grupo (2 a 120 caracteres).');
@@ -265,10 +286,12 @@ export function prepareNewInvite({ familyName, maxGuests = 2, customToken = '' }
     throw new Error('O limite de pessoas deve ser um número entre 1 e 30.');
   }
   const token = customToken ? normalizeSingleLine(customToken).toLowerCase().replace(/[^a-z0-9-_]/g, '') : generateShortKey();
+  const expectedGuestsJson = JSON.stringify(parseExpectedGuestsInput(expectedGuests, max));
   return {
     cleanName,
     max,
-    initialToken: token.length >= 3 ? token : generateShortKey()
+    initialToken: token.length >= 3 ? token : generateShortKey(),
+    expectedGuestsJson
   };
 }
 
@@ -289,6 +312,10 @@ export function prepareAdminInvitePatch(row, patch = {}) {
   const respondentName = patch.respondentName !== undefined ? normalizeSingleLine(patch.respondentName) : row.respondentName;
   const phone = patch.phone !== undefined ? normalizeSingleLine(patch.phone) : row.phone;
   const absenceNote = patch.absenceNote !== undefined ? normalizeMultiLine(patch.absenceNote).slice(0, 600) : row.absenceNote;
+
+  const expectedGuestsJson = patch.expectedGuests !== undefined
+    ? JSON.stringify(parseExpectedGuestsInput(patch.expectedGuests, maxGuests))
+    : JSON.stringify(parseExpectedGuestsInput((() => { try { return JSON.parse(row.expectedGuestsJson || '[]'); } catch { return []; } })(), maxGuests));
 
   let confirmedGuests = (() => { try { return JSON.parse(row.confirmedGuestsJson || '[]'); } catch { return []; } })();
   if (Array.isArray(patch.confirmedGuests)) {
@@ -321,6 +348,7 @@ export function prepareAdminInvitePatch(row, patch = {}) {
     respondentName,
     phone,
     confirmedGuestsJson,
+    expectedGuestsJson,
     confirmedCount,
     absenceNote,
     now,

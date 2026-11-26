@@ -1832,41 +1832,51 @@
       updateResponseMode();
     }
 
-    function countFilledGuests() {
-      var filled = 0;
+    function countConfirmedGuests() {
+      var count = 0;
       Array.from(guestsList.querySelectorAll('.guest-row')).forEach(function (row) {
         var inp = row.querySelector('input[name="personName"]');
-        if (inp && inp.value.trim()) filled += 1;
+        var conf = row.querySelector('input[name="personConfirm"]');
+        if (inp && inp.value.trim() && conf && conf.value === 'yes') count += 1;
       });
-      return filled;
+      return count;
+    }
+
+    function countPendingGuestDecisions() {
+      var pending = 0;
+      Array.from(guestsList.querySelectorAll('.guest-row')).forEach(function (row) {
+        var inp = row.querySelector('input[name="personName"]');
+        var conf = row.querySelector('input[name="personConfirm"]');
+        if (inp && inp.value.trim() && (!conf || !conf.value)) pending += 1;
+      });
+      return pending;
     }
 
     function syncRowRequirements() {
       Array.from(guestsList.querySelectorAll('.guest-row')).forEach(function (row) {
         var nameInput = row.querySelector('input[name="personName"]');
-        var ageSelect = row.querySelector('select[name="personAgeGroup"]');
         if (nameInput) nameInput.required = false;
-        if (ageSelect) ageSelect.required = false;
       });
     }
 
     function updateFamilyCount() {
       var max = getMaxAllowedGuests();
-      var filledCount = countFilledGuests();
+      var confirmedCount = countConfirmedGuests();
+      var pendingDecisions = countPendingGuestDecisions();
       var rowCount = guestsList.querySelectorAll('.guest-row').length;
-      byId('family-count').textContent = filledCount + ' de ' + max + (max === 1 ? ' lugar preenchido' : ' lugares preenchidos');
+      byId('family-count').textContent = confirmedCount + ' de ' + max + (max === 1 ? ' confirmado' : ' confirmados');
       var fixedSlotsMode = Boolean(currentInvite && currentInvite.maxGuests);
       byId('add-guest-btn').hidden = fixedSlotsMode;
       byId('add-guest-btn').disabled = rowCount >= max;
 
       var partialNote = byId('rsvp-partial-note');
       if (partialNote) {
-        if (filledCount === 0) {
+        if (pendingDecisions > 0) {
           partialNote.hidden = false;
-          partialNote.textContent = 'Preencha seu nome acima para confirmar sua presença.';
-        } else if (fixedSlotsMode && filledCount < max) {
+          partialNote.textContent = 'Confirme "Vai" ou "Não vai" para cada convidado acima. Espaços em branco serão considerados como ausência.';
+        } else if (fixedSlotsMode && confirmedCount < max) {
           partialNote.hidden = false;
-          partialNote.textContent = 'Quem não puder ir, basta deixar o espaço em branco.';
+          partialNote.textContent = 'Espaços em branco serão considerados como ausência.';
         } else {
           partialNote.hidden = true;
         }
@@ -1875,30 +1885,6 @@
       byId('extra-seat-note').hidden = !(fixedSlotsMode || rowCount >= max);
       syncRowRequirements();
     }
-
-    var AGE_OPTIONS = [
-      { value: 'adulto', title: 'Adulto', hint: '13+ anos', label: 'Adulto (13+ anos)' },
-      { value: 'crianca', title: 'Criança', hint: '6 a 12 anos', label: 'Criança (6 a 12 anos)' },
-      { value: 'isento', title: 'Criança pequena', hint: '0 a 5 anos', label: 'Criança pequena (0 a 5 anos)' }
-    ];
-
-    function closeAllAgeMenus(exceptMenu) {
-      all('.age-picker-menu').forEach(function (m) {
-        if (m === exceptMenu) return;
-        m.hidden = true;
-        var b = m.parentNode && m.parentNode.querySelector('.age-picker-btn');
-        if (b) {
-          b.setAttribute('aria-expanded', 'false');
-          b.classList.remove('is-open');
-        }
-      });
-    }
-
-    document.addEventListener('click', function (ev) {
-      if (!ev.target || !ev.target.closest || !ev.target.closest('.age-picker')) {
-        closeAllAgeMenus(null);
-      }
-    });
 
     var lastAutoGuestName = '';
 
@@ -1910,10 +1896,12 @@
       var idx = guestCounter;
       var slotNum = currentCount + 1;
       var initialName = typeof initialGuest === 'string' ? initialGuest : (initialGuest && initialGuest.name) || '';
-      var initialAgeGroup = initialGuest && typeof initialGuest === 'object' ? (initialGuest.ageGroup || '') : '';
+      var initialConfirm = initialGuest && typeof initialGuest === 'object' ? (initialGuest.confirm || '') : '';
+      var isPreset = Boolean(initialGuest && typeof initialGuest === 'object' ? initialGuest.preset : initialName);
 
       var row = document.createElement('div');
       row.className = 'guest-row';
+      row.dataset.preset = isPreset ? '1' : '0';
 
       var slotHead = document.createElement('div');
       slotHead.className = 'guest-slot-head';
@@ -1938,134 +1926,73 @@
       if (initialName) nameInput.value = initialName;
       nameWrap.append(nameLabel, nameInput);
 
-      var ageWrap = document.createElement('div');
-      var ageLabel = document.createElement('label');
-      ageLabel.setAttribute('for', 'person-age-picker-' + idx);
-      ageLabel.textContent = 'Faixa de idade';
+      var confirmWrap = document.createElement('div');
+      var confirmLabel = document.createElement('label');
+      confirmLabel.textContent = 'Confirmação';
 
-      var agePicker = document.createElement('div');
-      agePicker.className = 'age-picker';
+      var confirmToggle = document.createElement('div');
+      confirmToggle.className = 'confirm-toggle';
+      confirmToggle.setAttribute('role', 'group');
+      confirmToggle.setAttribute('aria-label', 'Confirmação de presença para ' + (initialName || ('Convidado ' + slotNum)));
 
-      var ageSelect = document.createElement('select');
-      ageSelect.id = 'person-age-group-' + idx;
-      ageSelect.name = 'personAgeGroup';
-      ageSelect.className = 'age-native-select';
-      ageSelect.tabIndex = -1;
-      ageSelect.setAttribute('aria-hidden', 'true');
-      [['', 'Selecione']].concat(AGE_OPTIONS.map(function (o) { return [o.value, o.label]; })).forEach(function (pair) {
-        var opt = document.createElement('option');
-        opt.value = pair[0];
-        opt.textContent = pair[1];
-        if (initialAgeGroup === pair[0]) opt.selected = true;
-        ageSelect.appendChild(opt);
-      });
+      var confirmInput = document.createElement('input');
+      confirmInput.type = 'hidden';
+      confirmInput.name = 'personConfirm';
+      confirmInput.value = initialConfirm;
 
-      var pickerBtn = document.createElement('button');
-      pickerBtn.type = 'button';
-      pickerBtn.id = 'person-age-picker-' + idx;
-      pickerBtn.className = 'age-picker-btn is-placeholder';
-      pickerBtn.setAttribute('aria-haspopup', 'listbox');
-      pickerBtn.setAttribute('aria-expanded', 'false');
+      var yesBtn = document.createElement('button');
+      yesBtn.type = 'button';
+      yesBtn.className = 'confirm-pill';
+      yesBtn.setAttribute('data-confirm', 'yes');
+      yesBtn.textContent = '✓ Vai';
 
-      var pickerVal = document.createElement('span');
-      pickerVal.className = 'age-picker-value';
-      pickerVal.textContent = 'Selecione a idade';
+      var noBtn = document.createElement('button');
+      noBtn.type = 'button';
+      noBtn.className = 'confirm-pill';
+      noBtn.setAttribute('data-confirm', 'no');
+      noBtn.textContent = 'Não vai';
 
-      var chevronSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      chevronSvg.setAttribute('class', 'age-picker-chevron');
-      chevronSvg.setAttribute('viewBox', '0 0 24 24');
-      chevronSvg.setAttribute('fill', 'none');
-      chevronSvg.setAttribute('stroke', 'currentColor');
-      chevronSvg.setAttribute('stroke-width', '2');
-      chevronSvg.setAttribute('stroke-linecap', 'round');
-      chevronSvg.setAttribute('stroke-linejoin', 'round');
-      chevronSvg.setAttribute('aria-hidden', 'true');
-      var chevronPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      chevronPath.setAttribute('d', 'm6 9 6 6 6-6');
-      chevronSvg.appendChild(chevronPath);
-      pickerBtn.append(pickerVal, chevronSvg);
-
-      var pickerMenu = document.createElement('div');
-      pickerMenu.className = 'age-picker-menu';
-      pickerMenu.setAttribute('role', 'listbox');
-      pickerMenu.hidden = true;
-
-      function syncPickerUi() {
-        var currentVal = ageSelect.value;
-        var found = AGE_OPTIONS.find(function (o) { return o.value === currentVal; });
-        if (found) {
-          pickerVal.textContent = found.label;
-          pickerBtn.classList.remove('is-placeholder');
-        } else {
-          pickerVal.textContent = 'Selecione a idade';
-          pickerBtn.classList.add('is-placeholder');
-        }
-        Array.from(pickerMenu.querySelectorAll('.age-picker-option')).forEach(function (optBtn) {
-          var isSel = optBtn.getAttribute('data-value') === currentVal;
-          optBtn.classList.toggle('is-selected', isSel);
-          optBtn.setAttribute('aria-selected', isSel ? 'true' : 'false');
-        });
+      function syncConfirmUi() {
+        var val = confirmInput.value;
+        yesBtn.setAttribute('aria-pressed', val === 'yes' ? 'true' : 'false');
+        noBtn.setAttribute('aria-pressed', val === 'no' ? 'true' : 'false');
+        row.classList.toggle('is-absent', val === 'no');
       }
 
-      AGE_OPTIONS.forEach(function (opt) {
-        var optBtn = document.createElement('button');
-        optBtn.type = 'button';
-        optBtn.className = 'age-picker-option';
-        optBtn.setAttribute('role', 'option');
-        optBtn.setAttribute('data-value', opt.value);
-        optBtn.setAttribute('aria-selected', 'false');
-
-        var titleSpan = document.createElement('strong');
-        titleSpan.textContent = opt.title;
-        var hintSpan = document.createElement('small');
-        hintSpan.textContent = opt.hint;
-        optBtn.append(titleSpan, hintSpan);
-
-        optBtn.addEventListener('click', function () {
-          ageSelect.value = opt.value;
-          ageSelect.dispatchEvent(new Event('change'));
-          pickerMenu.hidden = true;
-          pickerBtn.setAttribute('aria-expanded', 'false');
-          pickerBtn.classList.remove('is-open');
-          pickerBtn.focus();
-        });
-        pickerMenu.appendChild(optBtn);
+      yesBtn.addEventListener('click', function () {
+        confirmInput.value = 'yes';
+        syncConfirmUi();
+        updateFamilyCount();
       });
 
-      pickerBtn.addEventListener('click', function () {
-        var willOpen = pickerMenu.hidden;
-        closeAllAgeMenus(pickerMenu);
-        pickerMenu.hidden = !willOpen;
-        pickerBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
-        pickerBtn.classList.toggle('is-open', willOpen);
+      noBtn.addEventListener('click', function () {
+        confirmInput.value = 'no';
+        syncConfirmUi();
+        updateFamilyCount();
       });
 
-      pickerBtn.addEventListener('keydown', function (ev) {
-        if (ev.key === 'Escape') {
-          pickerMenu.hidden = true;
-          pickerBtn.setAttribute('aria-expanded', 'false');
-          pickerBtn.classList.remove('is-open');
-        }
-      });
-
-      agePicker.append(ageSelect, pickerBtn, pickerMenu);
-      ageWrap.append(ageLabel, agePicker);
+      confirmToggle.append(yesBtn, noBtn);
+      confirmWrap.append(confirmLabel, confirmInput, confirmToggle);
 
       nameInput.addEventListener('input', function () {
         var firstInput = guestsList.querySelector('.guest-row input[name="personName"]');
-        if (this === firstInput) {
-          var currentTrimmed = this.value.trim();
+        var currentTrimmed = this.value.trim();
+        if (this === firstInput && row.dataset.preset !== '1') {
           this.dataset.manualEdit = currentTrimmed && currentTrimmed !== lastAutoGuestName ? '1' : '';
+        }
+        confirmToggle.setAttribute('aria-label', 'Confirmação de presença para ' + (currentTrimmed || ('Convidado ' + slotNum)));
+        if (!currentTrimmed) {
+          confirmInput.value = '';
+          syncConfirmUi();
+        } else if (row.dataset.preset !== '1' && !confirmInput.value) {
+          confirmInput.value = 'yes';
+          syncConfirmUi();
         }
         updateFamilyCount();
       });
-      ageSelect.addEventListener('change', function () {
-        syncPickerUi();
-        updateFamilyCount();
-      });
-      syncPickerUi();
+      syncConfirmUi();
 
-      fields.append(nameWrap, ageWrap);
+      fields.append(nameWrap, confirmWrap);
       row.appendChild(fields);
 
       guestsList.appendChild(row);
@@ -2080,7 +2007,8 @@
     }
 
     function syncResponsibleToFirstGuest(rawValue) {
-      var firstInput = guestsList.querySelector('.guest-row input[name="personName"]');
+      var firstRow = guestsList.querySelector('.guest-row');
+      var firstInput = firstRow && firstRow.querySelector('input[name="personName"]');
       if (!firstInput) return;
       var trimmed = String(rawValue || '').trim();
       var currentFirst = firstInput.value.trim();
@@ -2088,16 +2016,27 @@
       if (currentFirst === '' || currentFirst === lastAutoGuestName) {
         firstInput.value = trimmed;
         lastAutoGuestName = trimmed;
+        var confInput = firstRow.querySelector('input[name="personConfirm"]');
+        if (confInput && trimmed && !confInput.value) {
+          confInput.value = 'yes';
+          var yb = firstRow.querySelector('[data-confirm="yes"]');
+          var nb = firstRow.querySelector('[data-confirm="no"]');
+          if (yb) yb.setAttribute('aria-pressed', 'true');
+          if (nb) nb.setAttribute('aria-pressed', 'false');
+          firstRow.classList.remove('is-absent');
+        }
         updateFamilyCount();
       }
     }
 
     function ensureGuestSlotsReady() {
       var existingRows = guestsList.querySelectorAll('.guest-row').length;
+      var expected = currentInvite && Array.isArray(currentInvite.expectedGuests) ? currentInvite.expectedGuests : [];
       if (currentInvite && currentInvite.maxGuests) {
-        var target = getMaxAllowedGuests();
+        var target = Math.max(expected.length, getMaxAllowedGuests());
         while (existingRows < target) {
-          addGuestRow('', false);
+          var presetName = existingRows < expected.length ? expected[existingRows] : '';
+          addGuestRow(presetName ? { name: presetName, confirm: '', preset: true } : '', false);
           existingRows += 1;
         }
       } else if (existingRows === 0) {
@@ -2120,7 +2059,6 @@
       byId('absence-note-field').hidden = isYes;
       byId('guest-phone').required = isYes;
       byId('guest-phone-label').textContent = isYes ? 'WhatsApp para contato' : 'WhatsApp para contato (opcional)';
-      if (!isYes) closeAllAgeMenus(null);
       if (isYes) ensureGuestSlotsReady();
       all('#rsvp-guests-list input, #rsvp-guests-list select, #rsvp-guests-list button, #add-guest-btn').forEach(function (el) {
         el.disabled = !isYes;
@@ -2142,12 +2080,24 @@
       var list = [];
       Array.from(guestsList.querySelectorAll('.guest-row')).forEach(function (row) {
         var nameEl = row.querySelector('input[name="personName"]');
-        var ageGroupEl = row.querySelector('select[name="personAgeGroup"]');
+        var confirmEl = row.querySelector('input[name="personConfirm"]');
         var clean = String((nameEl && nameEl.value) || '').trim();
-        if (clean) {
-          var item = { name: clean };
-          if (ageGroupEl && ageGroupEl.value) item.ageGroup = ageGroupEl.value;
-          list.push(item);
+        if (clean && confirmEl && confirmEl.value === 'yes') {
+          list.push({ name: clean });
+        }
+      });
+      return list;
+    }
+
+    function collectDeclinedGuests() {
+      if (getSelectedResponse() !== 'yes') return [];
+      var list = [];
+      Array.from(guestsList.querySelectorAll('.guest-row')).forEach(function (row) {
+        var nameEl = row.querySelector('input[name="personName"]');
+        var confirmEl = row.querySelector('input[name="personConfirm"]');
+        var clean = String((nameEl && nameEl.value) || '').trim();
+        if (clean && confirmEl && confirmEl.value === 'no') {
+          list.push(clean);
         }
       });
       return list;
@@ -2189,6 +2139,12 @@
           ul.appendChild(li);
         });
         box.appendChild(ul);
+        if (Array.isArray(data.absentGuests) && data.absentGuests.length) {
+          var pAbs = document.createElement('p');
+          pAbs.className = 'fine-print';
+          pAbs.textContent = 'Não irão comparecer: ' + data.absentGuests.join(', ') + '.';
+          box.appendChild(pAbs);
+        }
       } else {
         var pNo = document.createElement('p');
         pNo.innerHTML = 'Você informou que <strong>não poderá comparecer</strong>.';
@@ -2267,23 +2223,48 @@
         ensureGuestSlotsReady();
         return;
       }
-      byId('guest-name').value = invite.respondentName || '';
+      var expected = Array.isArray(invite.expectedGuests) ? invite.expectedGuests : [];
+      var defaultSingleName = !invite.respondentName && Number(invite.maxGuests) === 1 && expected.length === 1 ? expected[0] : '';
+      byId('guest-name').value = invite.respondentName || defaultSingleName;
       byId('guest-absence-note').value = invite.absenceNote || '';
       if (invite.status === 'no') {
         setSelectedResponse('no');
       } else {
         byId('response-yes').checked = true;
         byId('response-no').checked = false;
-        var list = Array.isArray(invite.confirmedGuests) && invite.confirmedGuests.length
-          ? invite.confirmedGuests
-          : [{ name: invite.respondentName || '' }];
-        var targetSlots = Math.max(list.length, Number(invite.maxGuests) || list.length);
+        var rowsToBuild = [];
+        var confirmed = Array.isArray(invite.confirmedGuests) ? invite.confirmedGuests : [];
+        if (invite.status === 'yes' && confirmed.length) {
+          var seenNames = {};
+          confirmed.forEach(function (g) {
+            var nm = typeof g === 'string' ? g : (g && g.name) || '';
+            var clean = nm.trim();
+            if (!clean) return;
+            seenNames[clean.toLowerCase()] = true;
+            rowsToBuild.push({ name: clean, confirm: 'yes', preset: true });
+          });
+          expected.forEach(function (expName) {
+            var cleanExp = String(expName || '').trim();
+            if (cleanExp && !seenNames[cleanExp.toLowerCase()]) {
+              seenNames[cleanExp.toLowerCase()] = true;
+              rowsToBuild.push({ name: cleanExp, confirm: 'no', preset: true });
+            }
+          });
+        } else if (expected.length) {
+          expected.forEach(function (expName) {
+            var cleanExp = String(expName || '').trim();
+            if (cleanExp) rowsToBuild.push({ name: cleanExp, confirm: '', preset: true });
+          });
+        } else if (invite.respondentName) {
+          rowsToBuild.push({ name: invite.respondentName, confirm: 'yes', preset: false });
+        }
+        var targetSlots = Math.max(rowsToBuild.length, Number(invite.maxGuests) || rowsToBuild.length);
         for (var i = 0; i < targetSlots; i++) {
-          addGuestRow(i < list.length ? list[i] : '', false);
+          addGuestRow(i < rowsToBuild.length ? rowsToBuild[i] : '', false);
         }
         setSelectedResponse('yes');
         var firstLoaded = guestsList.querySelector('.guest-row input[name="personName"]');
-        var respTrim = String(invite.respondentName || '').trim();
+        var respTrim = String(byId('guest-name').value || '').trim();
         lastAutoGuestName = respTrim;
         if (firstLoaded && firstLoaded.value.trim() && firstLoaded.value.trim() !== respTrim) {
           firstLoaded.dataset.manualEdit = '1';
@@ -2380,21 +2361,27 @@
       }
 
       var attendingGuests = collectAttendingGuests();
+      var declinedGuests = collectDeclinedGuests();
       if (resp === 'yes') {
-        var missingAgeRow = Array.from(guestsList.querySelectorAll('.guest-row')).find(function (row) {
+        var pendingConfirmRow = Array.from(guestsList.querySelectorAll('.guest-row')).find(function (row) {
           var nEl = row.querySelector('input[name="personName"]');
-          var sEl = row.querySelector('select[name="personAgeGroup"]');
-          return nEl && nEl.value.trim() && (!sEl || !sEl.value);
+          var cEl = row.querySelector('input[name="personConfirm"]');
+          return nEl && nEl.value.trim() && (!cEl || !cEl.value);
         });
-        if (missingAgeRow) {
-          var gLabel = missingAgeRow.querySelector('input[name="personName"]').value.trim();
-          var pBtn = missingAgeRow.querySelector('.age-picker-btn');
+        if (pendingConfirmRow) {
+          var gLabel = pendingConfirmRow.querySelector('input[name="personName"]').value.trim();
+          var yesPill = pendingConfirmRow.querySelector('[data-confirm="yes"]');
           status.className = 'form-status is-error';
-          status.textContent = 'Selecione a faixa de idade de ' + gLabel + '.';
-          if (pBtn) {
-            pBtn.focus();
-            pBtn.click();
-          }
+          status.textContent = 'Confirme se ' + gLabel + ' vai comparecer ou toque em "Não vai".';
+          if (yesPill) yesPill.focus();
+          return;
+        }
+        var namedCount = Array.from(guestsList.querySelectorAll('.guest-row input[name="personName"]')).filter(function (el) {
+          return Boolean(el.value.trim());
+        }).length;
+        if (namedCount > 0 && attendingGuests.length === 0) {
+          status.className = 'form-status is-error';
+          status.textContent = 'Marque pelo menos uma pessoa em "Vai" ou selecione "Não poderei comparecer" acima.';
           return;
         }
         if (attendingGuests.length === 0) attendingGuests = [{ name: name }];
@@ -2421,7 +2408,7 @@
 
       var reviewContainer = byId('rsvp-review-box');
       reviewContainer.innerHTML = '';
-      reviewContainer.appendChild(renderInviteSummaryHtml(pendingRsvpPayload));
+      reviewContainer.appendChild(renderInviteSummaryHtml(Object.assign({ absentGuests: declinedGuests }, pendingRsvpPayload)));
       byId('rsvp-review-status').className = 'form-status';
       byId('rsvp-review-status').textContent = '';
       showRsvpStep('review');
