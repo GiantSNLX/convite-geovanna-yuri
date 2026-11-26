@@ -1863,10 +1863,10 @@
       if (partialNote) {
         if (filledCount === 0) {
           partialNote.hidden = false;
-          partialNote.textContent = 'Preencha ao menos o nome de quem vai. Se enviar sem preencher abaixo, confirmaremos apenas o responsável acima.';
+          partialNote.textContent = 'Preencha seu nome acima para confirmar sua presença.';
         } else if (fixedSlotsMode && filledCount < max) {
           partialNote.hidden = false;
-          partialNote.textContent = 'Você preencheu ' + filledCount + ' de ' + max + ' lugares reservados. Os espaços em branco ficarão livres sem impedir o envio.';
+          partialNote.textContent = 'Quem não puder ir, basta deixar o espaço em branco.';
         } else {
           partialNote.hidden = true;
         }

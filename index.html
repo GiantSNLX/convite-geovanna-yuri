@@ -357,11 +357,11 @@
             <legend class="sr-only">Você poderá estar com a gente?</legend>
             <label class="radio-card">
               <input type="radio" name="response" id="response-yes" value="yes" checked>
-              <span class="radio-copy"><strong>Sim, estarei presente</strong><small>Informar quem estará presente</small></span>
+              <span class="radio-copy"><strong>Sim, estarei presente</strong><small>Confirmar quem vai</small></span>
             </label>
             <label class="radio-card">
               <input type="radio" name="response" id="response-no" value="no">
-              <span class="radio-copy"><strong>Não poderei comparecer</strong><small>Avisar os noivos com carinho</small></span>
+              <span class="radio-copy"><strong>Não poderei comparecer</strong><small>Avisar os noivos</small></span>
             </label>
           </fieldset>
 
@@ -389,14 +389,16 @@
             <div class="family-head">
               <div>
                 <strong>Quem celebrará conosco</strong>
-                <small>Preencha o nome e a faixa de idade de cada pessoa que vai. Se alguém não puder ir, basta deixar em branco.</small>
+                <small>Informe o nome e a faixa de idade de quem vai celebrar conosco.</small>
               </div>
               <span id="family-count" class="family-count">0 de 2 lugares preenchidos</span>
             </div>
             <div id="rsvp-guests-list" class="guests-list"></div>
             <button type="button" id="add-guest-btn" class="button button-outline button-small add-guest-btn" hidden>+ Adicionar pessoa</button>
-            <p id="rsvp-partial-note" class="fine-print" hidden></p>
-            <p id="extra-seat-note" class="fine-print" hidden>Caso precise ajustar a quantidade de lugares do convite, fale com os noivos pelo WhatsApp.</p>
+            <div class="family-notes">
+              <p id="rsvp-partial-note" class="fine-print" hidden></p>
+              <p id="extra-seat-note" class="fine-print" hidden>Precisa alterar a quantidade de lugares? É só chamar os noivos no WhatsApp.</p>
+            </div>
           </div>
 
           <div class="form-field" id="absence-note-field" hidden>

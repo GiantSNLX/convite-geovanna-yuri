@@ -103,25 +103,25 @@
   function buildWhatsappMessage(inv, preferPublic) {
     var honoree = formatHonoreeDisplayName(inv);
     var max = Number(inv && inv.maxGuests) || 1;
-    var seatLabel = max === 1
-      ? '1 pessoa (convite individual)'
-      : max + ' pessoas (' + max + ' senhas para a família)';
+    var seatCopy = max === 1
+      ? 'Este link é individual e está reservado para *1 pessoa*.'
+      : 'Este link já está reservado para *' + max + ' pessoas*.';
     var link = buildInviteLink(inv, preferPublic);
     return [
       'Olá, *' + honoree + '*!',
       '',
-      'Preparamos algo muito especial e guardamos este convite com carinho para vocês. É de *Geovanna & Yuri*!',
+      'Preparamos com muito carinho o convite de casamento de *Yuri & Geovanna* para ' + (max === 1 ? 'você' : 'vocês') + '!',
       '',
       '*Como abrir o seu convite:*',
       '1. Toque no link exclusivo abaixo',
       '2. Ative o som e clique na tela para abrir o envelope',
-      '3. Ao final, clique em *"Confirmar presença"* (este link já está reservado para *' + seatLabel + '*)',
+      '3. Ao final, clique em *"Confirmar presença"*. ' + seatCopy,
       '',
       '*Acesse seu convite pelo site:*',
       link,
       '',
       'Com carinho,',
-      '*Geovanna & Yuri*'
+      '*Yuri & Geovanna*'
     ].join('\n');
   }
 

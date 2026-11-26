@@ -51,11 +51,16 @@ dialog{width:min(540px,calc(100% - 32px));max-height:calc(100vh - 32px);max-heig
 .invite-dialog-meta{font-size:14px;font-weight:500;color:var(--ink)}
 .seats-banner{margin:0 0 18px;padding:12px 15px;background:var(--sage);border:1px solid #c3d1b3;border-left:3px solid var(--gold);border-radius:8px;font-size:14.5px;color:var(--green);font-weight:500}
 .radio-group{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0 18px}
-.radio-card{display:flex;align-items:flex-start;gap:10px;padding:13px 14px;background:var(--white);border:1px solid #a9b89c;border-radius:6px;cursor:pointer;margin:0}
-.radio-card:has(input:checked){border-color:var(--green);background:var(--sage)}
-.radio-card input[type="radio"]{width:18px;height:18px;min-height:18px;margin:3px 0 0;accent-color:var(--green)}
-.radio-copy strong{display:block;font-size:15px;font-weight:500;color:var(--ink)}
-.radio-copy small{display:block;font-size:12.5px;font-weight:400;color:var(--muted);margin-top:2px}
+.radio-card{display:flex;align-items:flex-start;gap:10px;padding:13px 12px;background:var(--white);border:1px solid #cfc4ae;border-radius:12px;cursor:pointer;margin:0;transition:border-color .18s,background .18s,box-shadow .18s}
+.radio-card:hover{border-color:#b3a384;background:#fffefb}
+.radio-card:has(input:checked){border-color:var(--green);background:var(--sage);box-shadow:0 0 0 1px rgba(51,72,43,.16)}
+.radio-card input[type="radio"]{appearance:none;-webkit-appearance:none;flex:0 0 18px;width:18px;height:18px;min-height:18px;margin:2px 0 0;padding:0;border-radius:50%;border:1.5px solid #b8ab92;background:var(--white);display:grid;place-items:center;cursor:pointer;transition:border-color .18s,background .18s}
+.radio-card input[type="radio"]::after{content:'';width:8px;height:8px;border-radius:50%;background:var(--white);transform:scale(0);transition:transform .16s ease}
+.radio-card input[type="radio"]:checked{border-color:var(--green);background:var(--green)}
+.radio-card input[type="radio"]:checked::after{transform:scale(1)}
+.radio-copy{min-width:0}
+.radio-copy strong{display:block;font-size:14px;font-weight:600;line-height:1.28;color:var(--ink)}
+.radio-copy small{display:block;font-size:12.5px;font-weight:400;line-height:1.35;color:var(--muted);margin-top:3px}
 .family-box{margin:16px 0;padding:16px;border:1px solid var(--line);border-radius:8px;background:var(--white)}
 .family-head{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
 .family-head>div{width:100%}
@@ -88,6 +93,8 @@ dialog{width:min(540px,calc(100% - 32px));max-height:calc(100vh - 32px);max-heig
 .age-picker-option.is-selected::after{content:'✓';font-size:13px;font-weight:600;color:var(--gold);margin-left:2px}
 .guest-remove{padding:2px 8px;min-height:28px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px;font-weight:500}.guest-remove:hover{color:var(--wine);border-color:#d2b6b6;background:var(--wine-soft)}
 .add-guest-btn{width:100%;margin-top:12px;min-height:48px}
+.family-notes{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:5px}
+.family-notes .fine-print{margin:0;font-size:12.5px;line-height:1.45;color:var(--muted)}
 .review-box{padding:16px 18px;background:var(--white);border:1px solid var(--line);border-left:3px solid var(--green);border-radius:6px;margin:14px 0}
 .review-box p{font-size:15px;color:var(--ink);margin-bottom:8px}.review-list{margin:8px 0 12px 18px;padding:0}.review-list li{font-weight:500;margin:3px 0}
 .dialog-actions-stack{display:flex;flex-direction:column;gap:10px;margin-top:16px}
