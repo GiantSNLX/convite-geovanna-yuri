@@ -75,8 +75,8 @@ dialog{width:min(540px,calc(100% - 32px));max-height:calc(100vh - 32px);max-heig
 .guest-row input,.guest-row select{min-height:46px;padding:9px 12px;font-size:15px;border-radius:10px;border:1px solid #cfc4ae}
 .guest-row input:focus{border-color:var(--gold);outline:2px solid rgba(166,130,60,.22);outline-offset:0}
 .guest-row.is-absent input[name="personName"]{color:var(--muted);background:#faf6ee;text-decoration:line-through;text-decoration-color:rgba(120,63,64,.45)}
-.confirm-toggle{display:grid;grid-template-columns:1fr 1fr;gap:6px;min-width:194px}
-.confirm-pill{min-height:46px;padding:8px 12px;border-radius:10px;border:1px solid #cfc4ae;background:var(--white);font-size:13.5px;font-weight:500;color:var(--muted);display:inline-flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;transition:border-color .16s,background .16s,color .16s,box-shadow .16s}
+.confirm-toggle{display:grid;grid-template-columns:1fr 1fr;gap:6px;min-width:228px}
+.confirm-pill{min-height:46px;padding:8px 10px;border-radius:10px;border:1px solid #cfc4ae;background:var(--white);font-size:13px;font-weight:500;color:var(--muted);display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;transition:border-color .16s,background .16s,color .16s,box-shadow .16s}
 .confirm-pill:hover{border-color:#b3a384;color:var(--ink);background:#fffefb}
 .confirm-pill:focus-visible{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(166,130,60,.16)}
 .confirm-pill[data-confirm="yes"][aria-pressed="true"]{background:var(--sage);border-color:var(--green);color:var(--green);font-weight:600;box-shadow:0 0 0 1px rgba(51,72,43,.16)}

@@ -1873,7 +1873,7 @@
       if (partialNote) {
         if (pendingDecisions > 0) {
           partialNote.hidden = false;
-          partialNote.textContent = 'Confirme "Vai" ou "Não vai" para cada convidado acima. Espaços em branco serão considerados como ausência.';
+          partialNote.textContent = 'Confirme a presença de cada convidado acima. Espaços em branco serão considerados como ausência.';
         } else if (fixedSlotsMode && confirmedCount < max) {
           partialNote.hidden = false;
           partialNote.textContent = 'Espaços em branco serão considerados como ausência.';
@@ -1944,16 +1944,17 @@
       yesBtn.type = 'button';
       yesBtn.className = 'confirm-pill';
       yesBtn.setAttribute('data-confirm', 'yes');
-      yesBtn.textContent = '✓ Vai';
+      yesBtn.textContent = 'Confirmar';
 
       var noBtn = document.createElement('button');
       noBtn.type = 'button';
       noBtn.className = 'confirm-pill';
       noBtn.setAttribute('data-confirm', 'no');
-      noBtn.textContent = 'Não vai';
+      noBtn.textContent = 'Não poderá ir';
 
       function syncConfirmUi() {
         var val = confirmInput.value;
+        yesBtn.textContent = val === 'yes' ? '✓ Confirmado' : 'Confirmar';
         yesBtn.setAttribute('aria-pressed', val === 'yes' ? 'true' : 'false');
         noBtn.setAttribute('aria-pressed', val === 'no' ? 'true' : 'false');
         row.classList.toggle('is-absent', val === 'no');
@@ -2372,7 +2373,7 @@
           var gLabel = pendingConfirmRow.querySelector('input[name="personName"]').value.trim();
           var yesPill = pendingConfirmRow.querySelector('[data-confirm="yes"]');
           status.className = 'form-status is-error';
-          status.textContent = 'Confirme se ' + gLabel + ' vai comparecer ou toque em "Não vai".';
+          status.textContent = 'Confirme a presença de ' + gLabel + ' ou marque "Não poderá ir".';
           if (yesPill) yesPill.focus();
           return;
         }
@@ -2381,7 +2382,7 @@
         }).length;
         if (namedCount > 0 && attendingGuests.length === 0) {
           status.className = 'form-status is-error';
-          status.textContent = 'Marque pelo menos uma pessoa em "Vai" ou selecione "Não poderei comparecer" acima.';
+          status.textContent = 'Marque pelo menos um convidado como confirmado ou selecione "Não poderei comparecer" acima.';
           return;
         }
         if (attendingGuests.length === 0) attendingGuests = [{ name: name }];
