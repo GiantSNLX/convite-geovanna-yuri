@@ -1842,13 +1842,11 @@
     }
 
     function syncRowRequirements() {
-      var isYes = getSelectedResponse() === 'yes';
       Array.from(guestsList.querySelectorAll('.guest-row')).forEach(function (row) {
         var nameInput = row.querySelector('input[name="personName"]');
         var ageSelect = row.querySelector('select[name="personAgeGroup"]');
-        var hasName = Boolean(nameInput && nameInput.value.trim());
         if (nameInput) nameInput.required = false;
-        if (ageSelect) ageSelect.required = isYes && hasName;
+        if (ageSelect) ageSelect.required = false;
       });
     }
 
@@ -1877,6 +1875,32 @@
       byId('extra-seat-note').hidden = !(fixedSlotsMode || rowCount >= max);
       syncRowRequirements();
     }
+
+    var AGE_OPTIONS = [
+      { value: 'adulto', title: 'Adulto', hint: '13+ anos', label: 'Adulto (13+ anos)' },
+      { value: 'crianca', title: 'Criança', hint: '6 a 12 anos', label: 'Criança (6 a 12 anos)' },
+      { value: 'isento', title: 'Criança pequena', hint: '0 a 5 anos', label: 'Criança pequena (0 a 5 anos)' }
+    ];
+
+    function closeAllAgeMenus(exceptMenu) {
+      all('.age-picker-menu').forEach(function (m) {
+        if (m === exceptMenu) return;
+        m.hidden = true;
+        var b = m.parentNode && m.parentNode.querySelector('.age-picker-btn');
+        if (b) {
+          b.setAttribute('aria-expanded', 'false');
+          b.classList.remove('is-open');
+        }
+      });
+    }
+
+    document.addEventListener('click', function (ev) {
+      if (!ev.target || !ev.target.closest || !ev.target.closest('.age-picker')) {
+        closeAllAgeMenus(null);
+      }
+    });
+
+    var lastAutoGuestName = '';
 
     function addGuestRow(initialGuest, focusNew) {
       var max = getMaxAllowedGuests();
@@ -1916,27 +1940,130 @@
 
       var ageWrap = document.createElement('div');
       var ageLabel = document.createElement('label');
-      ageLabel.setAttribute('for', 'person-age-group-' + idx);
+      ageLabel.setAttribute('for', 'person-age-picker-' + idx);
       ageLabel.textContent = 'Faixa de idade';
+
+      var agePicker = document.createElement('div');
+      agePicker.className = 'age-picker';
+
       var ageSelect = document.createElement('select');
       ageSelect.id = 'person-age-group-' + idx;
       ageSelect.name = 'personAgeGroup';
-      [
-        ['', 'Selecione'],
-        ['adulto', 'Adulto (13+ anos)'],
-        ['crianca', 'Criança (6 a 12 anos)'],
-        ['isento', 'Criança pequena (0 a 5 anos)']
-      ].forEach(function (pair) {
+      ageSelect.className = 'age-native-select';
+      ageSelect.tabIndex = -1;
+      ageSelect.setAttribute('aria-hidden', 'true');
+      [['', 'Selecione']].concat(AGE_OPTIONS.map(function (o) { return [o.value, o.label]; })).forEach(function (pair) {
         var opt = document.createElement('option');
         opt.value = pair[0];
         opt.textContent = pair[1];
         if (initialAgeGroup === pair[0]) opt.selected = true;
         ageSelect.appendChild(opt);
       });
-      ageWrap.append(ageLabel, ageSelect);
 
-      nameInput.addEventListener('input', updateFamilyCount);
-      ageSelect.addEventListener('change', updateFamilyCount);
+      var pickerBtn = document.createElement('button');
+      pickerBtn.type = 'button';
+      pickerBtn.id = 'person-age-picker-' + idx;
+      pickerBtn.className = 'age-picker-btn is-placeholder';
+      pickerBtn.setAttribute('aria-haspopup', 'listbox');
+      pickerBtn.setAttribute('aria-expanded', 'false');
+
+      var pickerVal = document.createElement('span');
+      pickerVal.className = 'age-picker-value';
+      pickerVal.textContent = 'Selecione a idade';
+
+      var chevronSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      chevronSvg.setAttribute('class', 'age-picker-chevron');
+      chevronSvg.setAttribute('viewBox', '0 0 24 24');
+      chevronSvg.setAttribute('fill', 'none');
+      chevronSvg.setAttribute('stroke', 'currentColor');
+      chevronSvg.setAttribute('stroke-width', '2');
+      chevronSvg.setAttribute('stroke-linecap', 'round');
+      chevronSvg.setAttribute('stroke-linejoin', 'round');
+      chevronSvg.setAttribute('aria-hidden', 'true');
+      var chevronPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      chevronPath.setAttribute('d', 'm6 9 6 6 6-6');
+      chevronSvg.appendChild(chevronPath);
+      pickerBtn.append(pickerVal, chevronSvg);
+
+      var pickerMenu = document.createElement('div');
+      pickerMenu.className = 'age-picker-menu';
+      pickerMenu.setAttribute('role', 'listbox');
+      pickerMenu.hidden = true;
+
+      function syncPickerUi() {
+        var currentVal = ageSelect.value;
+        var found = AGE_OPTIONS.find(function (o) { return o.value === currentVal; });
+        if (found) {
+          pickerVal.textContent = found.label;
+          pickerBtn.classList.remove('is-placeholder');
+        } else {
+          pickerVal.textContent = 'Selecione a idade';
+          pickerBtn.classList.add('is-placeholder');
+        }
+        Array.from(pickerMenu.querySelectorAll('.age-picker-option')).forEach(function (optBtn) {
+          var isSel = optBtn.getAttribute('data-value') === currentVal;
+          optBtn.classList.toggle('is-selected', isSel);
+          optBtn.setAttribute('aria-selected', isSel ? 'true' : 'false');
+        });
+      }
+
+      AGE_OPTIONS.forEach(function (opt) {
+        var optBtn = document.createElement('button');
+        optBtn.type = 'button';
+        optBtn.className = 'age-picker-option';
+        optBtn.setAttribute('role', 'option');
+        optBtn.setAttribute('data-value', opt.value);
+        optBtn.setAttribute('aria-selected', 'false');
+
+        var titleSpan = document.createElement('strong');
+        titleSpan.textContent = opt.title;
+        var hintSpan = document.createElement('small');
+        hintSpan.textContent = opt.hint;
+        optBtn.append(titleSpan, hintSpan);
+
+        optBtn.addEventListener('click', function () {
+          ageSelect.value = opt.value;
+          ageSelect.dispatchEvent(new Event('change'));
+          pickerMenu.hidden = true;
+          pickerBtn.setAttribute('aria-expanded', 'false');
+          pickerBtn.classList.remove('is-open');
+          pickerBtn.focus();
+        });
+        pickerMenu.appendChild(optBtn);
+      });
+
+      pickerBtn.addEventListener('click', function () {
+        var willOpen = pickerMenu.hidden;
+        closeAllAgeMenus(pickerMenu);
+        pickerMenu.hidden = !willOpen;
+        pickerBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        pickerBtn.classList.toggle('is-open', willOpen);
+      });
+
+      pickerBtn.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Escape') {
+          pickerMenu.hidden = true;
+          pickerBtn.setAttribute('aria-expanded', 'false');
+          pickerBtn.classList.remove('is-open');
+        }
+      });
+
+      agePicker.append(ageSelect, pickerBtn, pickerMenu);
+      ageWrap.append(ageLabel, agePicker);
+
+      nameInput.addEventListener('input', function () {
+        var firstInput = guestsList.querySelector('.guest-row input[name="personName"]');
+        if (this === firstInput) {
+          var currentTrimmed = this.value.trim();
+          this.dataset.manualEdit = currentTrimmed && currentTrimmed !== lastAutoGuestName ? '1' : '';
+        }
+        updateFamilyCount();
+      });
+      ageSelect.addEventListener('change', function () {
+        syncPickerUi();
+        updateFamilyCount();
+      });
+      syncPickerUi();
 
       fields.append(nameWrap, ageWrap);
       row.appendChild(fields);
@@ -1948,7 +2075,21 @@
 
     function clearGuests() {
       guestsList.innerHTML = '';
+      lastAutoGuestName = '';
       updateFamilyCount();
+    }
+
+    function syncResponsibleToFirstGuest(rawValue) {
+      var firstInput = guestsList.querySelector('.guest-row input[name="personName"]');
+      if (!firstInput) return;
+      var trimmed = String(rawValue || '').trim();
+      var currentFirst = firstInput.value.trim();
+      if (firstInput.dataset.manualEdit === '1') return;
+      if (currentFirst === '' || currentFirst === lastAutoGuestName) {
+        firstInput.value = trimmed;
+        lastAutoGuestName = trimmed;
+        updateFamilyCount();
+      }
     }
 
     function ensureGuestSlotsReady() {
@@ -1962,14 +2103,14 @@
       } else if (existingRows === 0) {
         addGuestRow(byId('guest-name').value.trim(), false);
       }
+      syncResponsibleToFirstGuest(byId('guest-name').value);
     }
 
+    byId('guest-name').addEventListener('input', function () {
+      syncResponsibleToFirstGuest(this.value);
+    });
     byId('guest-name').addEventListener('blur', function () {
-      var firstInput = guestsList.querySelector('.guest-row input[name="personName"]');
-      if (firstInput && !firstInput.value.trim() && this.value.trim()) {
-        firstInput.value = this.value.trim();
-        firstInput.dispatchEvent(new Event('input'));
-      }
+      syncResponsibleToFirstGuest(this.value);
     });
 
     function updateResponseMode() {
@@ -1979,6 +2120,7 @@
       byId('absence-note-field').hidden = isYes;
       byId('guest-phone').required = isYes;
       byId('guest-phone-label').textContent = isYes ? 'WhatsApp para contato' : 'WhatsApp para contato (opcional)';
+      if (!isYes) closeAllAgeMenus(null);
       if (isYes) ensureGuestSlotsReady();
       all('#rsvp-guests-list input, #rsvp-guests-list select, #rsvp-guests-list button, #add-guest-btn').forEach(function (el) {
         el.disabled = !isYes;
@@ -2140,6 +2282,12 @@
           addGuestRow(i < list.length ? list[i] : '', false);
         }
         setSelectedResponse('yes');
+        var firstLoaded = guestsList.querySelector('.guest-row input[name="personName"]');
+        var respTrim = String(invite.respondentName || '').trim();
+        lastAutoGuestName = respTrim;
+        if (firstLoaded && firstLoaded.value.trim() && firstLoaded.value.trim() !== respTrim) {
+          firstLoaded.dataset.manualEdit = '1';
+        }
       }
       updateFamilyCount();
     }
@@ -2233,6 +2381,22 @@
 
       var attendingGuests = collectAttendingGuests();
       if (resp === 'yes') {
+        var missingAgeRow = Array.from(guestsList.querySelectorAll('.guest-row')).find(function (row) {
+          var nEl = row.querySelector('input[name="personName"]');
+          var sEl = row.querySelector('select[name="personAgeGroup"]');
+          return nEl && nEl.value.trim() && (!sEl || !sEl.value);
+        });
+        if (missingAgeRow) {
+          var gLabel = missingAgeRow.querySelector('input[name="personName"]').value.trim();
+          var pBtn = missingAgeRow.querySelector('.age-picker-btn');
+          status.className = 'form-status is-error';
+          status.textContent = 'Selecione a faixa de idade de ' + gLabel + '.';
+          if (pBtn) {
+            pBtn.focus();
+            pBtn.click();
+          }
+          return;
+        }
         if (attendingGuests.length === 0) attendingGuests = [{ name: name }];
         var max = getMaxAllowedGuests();
         if (attendingGuests.length > max) {
@@ -2495,13 +2659,6 @@
 
       if (keyParam && decodedKey) {
         try { global.localStorage.setItem('convite_family_key_v1', keyParam); } catch (_) {}
-      } else if (!explicitSeats && !urlToken && storedKey) {
-        decodedKey = global.WeddingUtils.decodeInviteKey(storedKey);
-        if (decodedKey) {
-          explicitSeats = decodedKey.maxGuests;
-          familyParam = familyParam || decodedKey.familyName;
-          urlToken = decodedKey.token || '';
-        }
       }
 
       if (explicitSeats || (urlToken && isStaticPages)) {
@@ -2528,8 +2685,6 @@
 
       if (urlToken && !isStaticPages) {
         await loadInviteByToken(urlToken, true);
-      } else if (!urlToken && storedToken && !isStaticPages && !explicitSeats) {
-        await loadInviteByToken(storedToken, true);
       }
 
       if (params.get('aberto') === '1') {
